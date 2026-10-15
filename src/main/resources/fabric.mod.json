@@ -1,0 +1,50 @@
+{
+	"schemaVersion": 1,
+	"id": "itemblocker",
+	"version": "${version}",
+	"name": "Item Blocker",
+	"description": "Allows you to block certain items from being picked up.\n\nNow with compatibility with Pickup Notifications and Pickup Notifier!",
+	"authors": [
+		"jacobxny"
+	],
+	"contact": {
+		"issues": "https://github.com/jacobxny/Issues/issues",
+		"homepage": "https://modrinth.com/mod/item-blocker"
+	},
+	"license": "CC-BY-4.0",
+	"icon": "assets/itemblocker/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"client": [
+			"com.itemblocker.client.ItemBlockerClient",
+          	"com.itemblocker.init.ConfigInit"
+		],
+		"modmenu": [
+			"com.itemblocker.init.ModMenuInit"
+		],
+        "main": [
+			"com.itemblocker.init.ServerSideInit"
+        ],
+		"server": [
+			"com.itemblocker.init.ServerSideInit"
+		]
+	},
+	"mixins": [
+      "itemblocker.mixins.json"
+	],
+
+	"accessWidener": "itemblocker.classtweaker",
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": ">=26.2 ",
+		"java": ">=25"
+	},
+	"custom": {
+		"modmenu": {
+			"links": {
+				"Issues": "https://github.com/jacobxny/Issues/issues",
+				"Modrinth": "https://modrinth.com/mod/item-blocker"
+			}
+		}
+	}
+}

@@ -1,0 +1,139 @@
+
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+	id "me.modmuss50.mod-publish-plugin" version "2.2.0"
+}
+
+version = project.mod_version + "+" + project.minecraft_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+loom {
+	accessWidenerPath = file("src/main/resources/itemblocker.classtweaker")
+	runs {
+		client {
+			setProgramArguments(
+				["--username", "jacobny", "--uuid", "bfc817ab-7aac-4bd7-83c0-333c93e4726e"]
+			)
+		}
+	}
+}
+
+
+
+
+repositories {
+	// Add repositories to retrieve artifacts from in here.
+	// You should only use this when depending on other mods because
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
+	// for more information about repositories.
+	maven { url = "https://maven.terraformersmc.com/" }
+	maven {url = "https://api.modrinth.com/maven"}
+	maven { url = "https://maven.bawnorton.com/releases" }
+	maven {url = "https://repository.apache.org/content/repositories/releases"}
+}
+
+
+dependencies {
+
+	// Minecraft
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
+	// Fabric Loader
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API
+	implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+
+	/* Apache Commons Text Library,
+	since lang3/WordUtils is deprecated */
+	implementation include("org.apache.commons:commons-text:1.9")
+
+	// Jankson for JSON5 support
+	implementation include('blue.endless:jankson:1.2.3')
+
+	// Mixin Squared
+	implementation include("com.github.bawnorton.mixinsquared:mixinsquared-fabric:0.3.7-beta.1")
+
+	// Mod Menu
+	implementation "com.terraformersmc:modmenu:21.0.0-beta.1"
+
+	// Pickup Notifications
+	implementation "maven.modrinth:wWiJfmyy:3.0.1+26.3-fabric"
+
+	// Pickup Notifier
+	implementation "maven.modrinth:pick-up-notifier:veV20ScD"
+
+	// Puzzles Lib
+	implementation "maven.modrinth:puzzles-lib:SDaDR5Dt"
+
+	// Forge Config API
+	implementation "maven.modrinth:forge-config-api-port:JpKvrr9J"
+
+
+
+
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": inputs.properties.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+publishMods {
+	changelog = ""
+	type = STABLE
+	file = jar.archiveFile
+	modLoaders.add("fabric")
+	changelog = file("changelog.md").text
+	modrinth {
+		projectId = "JudjzCsX"
+		accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+		displayName = version
+		minecraftVersions.add(minecraft_version)
+		requires {
+			id = "P7dR8mSH"
+		}
+	}
+	curseforge {
+		accessToken =  providers.environmentVariable("CURSEFORGE_TOKEN")
+		projectId = "1539849"
+		displayName = version
+		minecraftVersions.add(minecraft_version)
+		requires("fabric-api")
+		client = true
+		server = true
+	}
+}
+
+jar {
+	inputs.property "archivesName", project.base.archivesName
+
+	from("LICENSE") {
+		rename { "${it}_${inputs.properties.archivesName}"}
+	}
+}
+
+

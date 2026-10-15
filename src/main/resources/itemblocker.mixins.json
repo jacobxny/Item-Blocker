@@ -1,0 +1,38 @@
+{
+  "required": true,
+  "package": "com.itemblocker.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "server.AbstractArrowMixin",
+    "server.ItemEntityMixin",
+    "server.LivingEntityMixin",
+    "server.ServerPlayerMixin"
+  ],
+  "client": [
+    "screen.CursorTypeInvoker",
+    "ClientPacketListenerMixin",
+    "MinecraftMixin",
+    "MultiPlayerGameModeMixin",
+    "OptionsMixin",
+    "compat.pickupnotifications.ItemPickupMixin",
+    "compat.pickupnotifier.AddEntriesHandlerMixin",
+    "renderer.ArmedEntityRenderStateMixin",
+    "renderer.ArrowRendererMixin",
+    "renderer.AvatarRendererMixin",
+    "renderer.ItemEntityRendererMixin",
+    "renderer.ItemInHandLayerMixin",
+    "screen.AbstractContainerMenuMixin",
+    "screen.AbstractContainerScreenMixin",
+    "screen.CreativeModeInventoryScreenMixin",
+    "screen.GuiMixin",
+    "screen.HudMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  },
+  "mixinextras": {
+    "minVersion": "0.5.3"}
+}
