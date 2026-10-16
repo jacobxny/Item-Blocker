@@ -1,10 +1,12 @@
 package com.itemblocker.api.screen;
 
 
+import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.api.screen.misc.*;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.mixin.screen.CursorTypeInvoker;
 import com.mojang.blaze3d.platform.cursor.CursorType;
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -37,8 +39,6 @@ public abstract class GlobalScreen extends Screen {
 
     public static CursorType DRAG_CURSOR;
 
-    private final TextSupplier textSupplier = TextSupplier.getInstance();
-
 
 
     protected GlobalScreen(Component title, @Nullable Screen parent) {
@@ -47,8 +47,6 @@ public abstract class GlobalScreen extends Screen {
         this.registerCustomCursors();
     }
 
-
-
     @Override
     public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
@@ -56,13 +54,6 @@ public abstract class GlobalScreen extends Screen {
         int versionWidth = this.font.width(ItemBlockerClient.MOD_VERSION);
         int versionX = this.width - versionWidth - 2;
         graphics.text(this.font, ItemBlockerClient.MOD_VERSION, versionX, this.height - 10, Colors.WHITE);
-        for (TextCoordinate coordinate : textSupplier.textList()) {
-            String text = coordinate.text();
-            int x = coordinate.x();
-            int y = coordinate.y();
-            int color = coordinate.color();
-            graphics.text(this.font, text, x, y, color);
-        }
     }
 
     @Override
@@ -90,9 +81,6 @@ public abstract class GlobalScreen extends Screen {
         };
     }
 
-    protected TextSupplier getTextSupplier() {
-        return this.textSupplier;
-    }
 
     public void playClickSound() {
         soundManager.play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1));
@@ -118,10 +106,12 @@ public abstract class GlobalScreen extends Screen {
             w = pw.get(0);
             h = ph.get(0);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load cursor image: " + resourcePath, e);
+            Loggers.CLIENT_LOGGER.info("Failed to read cursor image, defaulting to default cursor type");
+            return CursorTypes.POINTING_HAND;
         }
         if (pixels == null) {
-            throw new RuntimeException("STBImage failed to decode: " + resourcePath);
+            Loggers.CLIENT_LOGGER.info("Failed to read pixels in STBImage, defaulting to default cursor type");
+            return CursorTypes.POINTING_HAND;
         }
 
         @Nullable SDL_Surface surface = SDLSurface.SDL_CreateSurfaceFrom(w, h, SDLPixels.SDL_PIXELFORMAT_RGBA32, pixels, w * 4);
