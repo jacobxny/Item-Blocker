@@ -26,5 +26,10 @@ public record ItemEntry(String itemId) {
         }
         return ItemStack.EMPTY;
     }
+
+    public String getItemName() {
+        ItemStack stack = this.getItemStack();
+        return ItemUtil.getItemDetails(stack, ItemIDMode.USE_ITEM_NAMES);
+    }
 }
 
