@@ -1,5 +1,7 @@
 package com.itemblocker.api.records;
 
+import com.itemblocker.api.enums.ItemIDMode;
+import com.itemblocker.api.item.ItemUtil;
 import com.itemblocker.api.logging.Loggers;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
