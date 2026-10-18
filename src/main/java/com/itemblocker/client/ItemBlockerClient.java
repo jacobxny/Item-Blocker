@@ -47,7 +47,6 @@ public class ItemBlockerClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Loggers.CLIENT_LOGGER.info("Item Blocker initializing...");
-        isDev = BlockedItemsConfig.devFlagsEnabled();
         long start = Util.getMillis();
         handler = new KeyHandler(Minecraft.getInstance(), options);
 
