@@ -14,8 +14,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
+import java.util.List;
 
 
 public abstract class RaycastUtils {
@@ -25,7 +25,7 @@ public abstract class RaycastUtils {
 
     private static final double RAY_DISTANCE = 20.0;
 
-    private static final ArrayList<Block> specialBlockList = new ArrayList<>();
+    private static final List<Object> specialBlockList = Arrays.asList(Blocks.CAVE_VINES, Blocks.CAVE_VINES_PLANT, Blocks.KELP_PLANT);
 
 
     /**
@@ -35,9 +35,7 @@ public abstract class RaycastUtils {
     public static void raycast() {
         Entity camera = client.getCameraEntity();
         if (camera != null) {
-            addSpecialBlocksToList();
-            float a = client.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-            HitResult blockHit = camera.pick(RAY_DISTANCE, a, false);
+            HitResult blockHit = camera.pick(RAY_DISTANCE, 1.0F, false);
             boolean hitBlock = blockHit.getType() == HitResult.Type.BLOCK;
 
             if (hitBlock) {
@@ -61,12 +59,12 @@ public abstract class RaycastUtils {
 
 
 
-    public static void sendOverlay(ItemStack itemStack, boolean shouldSave) {
+    public static void sendOverlay(ItemStack itemStack, boolean isAlreadyBlocked) {
         String visualId = ItemUtil.getItemDetails(itemStack, BlockedItemsConfig.getItemIdMode());
         if (itemStack.getItem() == Items.AIR) {
             return;
         }
-        if (shouldSave) {
+        if (isAlreadyBlocked) {
             client.player.sendOverlayMessage(Component.literal("§e" + visualId + "§r is already in your blocked items list!"));
         } else {
             client.player.sendOverlayMessage(Component.literal("Added§e " + visualId + "§r to your blocked items list!"));
@@ -92,10 +90,4 @@ public abstract class RaycastUtils {
         }
     }
 
-
-    private static void addSpecialBlocksToList() {
-        specialBlockList.add(Blocks.CAVE_VINES);
-        specialBlockList.add(Blocks.CAVE_VINES_PLANT);
-        specialBlockList.add(Blocks.KELP_PLANT);
-    }
 }

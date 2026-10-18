@@ -372,7 +372,6 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         }
 
 
-
         List<ItemEntry> itemEntries = this.getActiveList();
         if (itemEntries == null || itemsPerPage <= 0 || itemEntries.size() <= itemsPerPage) {
             return false;
@@ -549,8 +548,8 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
 
 
-        if (this.isMusicDisc(stack)) {
-            displayText = this.getMusicDiscName(stack);
+        if (ItemUtil.isMusicDisc(stack)) {
+            displayText = ItemUtil.getMusicDiscName(stack);
         }
 
 
@@ -601,9 +600,6 @@ public abstract class AbstractItemWidget extends GlobalScreen {
                 }
             }
         }
-
-
-
 
         int yOffset = this.getListY() + 5;
         List<ItemEntry> itemEntries = this.getActiveList();
@@ -708,13 +704,13 @@ public abstract class AbstractItemWidget extends GlobalScreen {
     protected native void checkItemId();
 
 
-
     @Override
     public void onClose() {
         allItems.clear();
         filteredItems.clear();
         editBoxQuery = "";
         searching = false;
+        clearScreenEffects();
         super.onClose();
     }
 
@@ -762,7 +758,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
     private void shakeAllItems(float intensity) {
         intensity = Mth.clamp(intensity, 0, 1);
-        for (ItemEntry entry : this.getItemList()) {
+        for (ItemEntry entry : this.getActiveList()) {
             this.startShake(entry, intensity);
         }
     }
@@ -814,8 +810,8 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         list.sort(Comparator.comparing(
                 entry -> {
                     ItemStack stack = entry.getItemStack();
-                    if (isMusicDisc(stack)) {
-                        return getMusicDiscName(stack);
+                    if (ItemUtil.isMusicDisc(stack)) {
+                        return ItemUtil.getMusicDiscName(stack);
                     }
                     if (stack != null && !stack.isEmpty()) {
                         return stack.getHoverName().getString();
@@ -878,43 +874,33 @@ public abstract class AbstractItemWidget extends GlobalScreen {
             return true;
         }
         ItemStack stack = entry.getItemStack();
-        if (isMusicDisc(stack)) {
+        if (ItemUtil.isMusicDisc(stack)) {
             return stack != null && !stack.isEmpty()
-                    &&  this.getMusicDiscName(stack).toLowerCase(Locale.ROOT).contains(query);
+                    &&  ItemUtil.getMusicDiscName(stack).toLowerCase(Locale.ROOT).contains(query);
         }
         return stack != null && !stack.isEmpty()
                 && stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(query);
     }
 
-    public boolean isMusicDisc(ItemStack stack) {
-        return stack.getComponents().has(DataComponents.JUKEBOX_PLAYABLE);
+    private record ScrollThumbGeometry(int y, int height) {
+
     }
-
-    public String getMusicDiscName(ItemStack stack) {
-        JukeboxPlayable playable = stack.get(DataComponents.JUKEBOX_PLAYABLE);
-        if (playable == null) {
-            return "";
-        }
-        return playable.song().value().description().getString();
-    }
-
-
-    private record ScrollThumbGeometry(int y, int height) {}
 
     public static class WidgetGraphics {
 
         private final Font font;
-        protected WidgetGraphics(Font font) {
+        public WidgetGraphics(Font font) {
             this.font = font;
         }
 
-        public void line(GuiGraphicsExtractor graphics,
-                         float x1,
-                         float y1,
-                         float x2,
-                         float y2,
-                         float thickness,
-                         int color
+        public void line(
+                GuiGraphicsExtractor graphics,
+                 float x1,
+                 float y1,
+                 float x2,
+                 float y2,
+                 float thickness,
+                 int color
         ) {
             float dx = x2 - x1;
             float dy = y2 - y1;
@@ -996,5 +982,4 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         }
     }
 
-    
 }

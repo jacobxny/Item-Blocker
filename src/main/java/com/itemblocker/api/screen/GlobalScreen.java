@@ -40,7 +40,6 @@ public abstract class GlobalScreen extends Screen {
     public static CursorType DRAG_CURSOR;
 
 
-
     protected GlobalScreen(Component title, @Nullable Screen parent) {
         super(title);
         this.parent = parent;
@@ -106,11 +105,11 @@ public abstract class GlobalScreen extends Screen {
             w = pw.get(0);
             h = ph.get(0);
         } catch (IOException e) {
-            Loggers.CLIENT_LOGGER.info("Failed to read cursor image, defaulting to default cursor type");
+            Loggers.CLIENT_LOGGER.warn("Failed to read cursor image, defaulting to default cursor type");
             return CursorTypes.POINTING_HAND;
         }
         if (pixels == null) {
-            Loggers.CLIENT_LOGGER.info("Failed to read pixels in STBImage, defaulting to default cursor type");
+            Loggers.CLIENT_LOGGER.warn("Failed to read pixels in STBImage, defaulting to default cursor type");
             return CursorTypes.POINTING_HAND;
         }
 

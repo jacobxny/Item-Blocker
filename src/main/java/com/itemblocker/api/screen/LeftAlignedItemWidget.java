@@ -42,7 +42,6 @@ public abstract class LeftAlignedItemWidget extends GlobalScreen {
 
     protected int scrollOffset;
     public static boolean isDragging = false;
-    private boolean invalidItemEntry = false;
     public int itemsPerPage;
     public int maxScroll;
 
@@ -519,8 +518,7 @@ public abstract class LeftAlignedItemWidget extends GlobalScreen {
     public boolean mouseClicked(@NonNull MouseButtonEvent event, boolean doubleClick) {
         boolean grabbedScrollbar = this.handleScrollbarClick(event);
         if (grabbedScrollbar) {
-            super.mouseClicked(event, doubleClick);
-            return true;
+            return super.mouseClicked(event, doubleClick);
         }
 
         int yOffset = this.getListY() + 5;

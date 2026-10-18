@@ -7,23 +7,12 @@ import com.itemblocker.api.enums.PickupMode;
 import com.itemblocker.api.keymapping.KeyHandler;
 import com.itemblocker.api.keymapping.KeyOptions;
 import com.itemblocker.api.logging.Loggers;
-import com.itemblocker.api.records.ItemEntry;
-import com.itemblocker.api.screen.AbstractItemWidget;
-import com.itemblocker.api.screen.misc.TextSupplier;
 import com.itemblocker.client.config.BlockedItemsConfig;
-/* import fuzs.puzzleslib.common.api.client.event.v1.ClientLifecycleEvents;
-import fuzs.puzzleslib.common.api.client.event.v1.ClientTickEvents;
-import fuzs.puzzleslib.common.api.client.event.v1.entity.ClientEntityEvents;
-
- */
 import com.sun.jna.Native;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 
 import java.net.URI;

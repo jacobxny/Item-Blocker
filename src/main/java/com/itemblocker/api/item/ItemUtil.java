@@ -7,10 +7,12 @@ import com.itemblocker.api.records.ItemEntry;
 import io.netty.util.SuppressForbidden;
 import jdk.jfr.Experimental;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.JukeboxPlayable;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.text.WordUtils;
 import org.jetbrains.annotations.ApiStatus;
@@ -65,8 +67,7 @@ public class ItemUtil {
 
     private static String getItemNameFromID(String itemId) {
         ItemEntry entry = new ItemEntry(itemId);
-        ItemStack stack = entry.getItemStack();
-        return getItemName(stack);
+        return entry.getItemName();
     }
 
     public static boolean isMusicDisc(ItemStack stack) {

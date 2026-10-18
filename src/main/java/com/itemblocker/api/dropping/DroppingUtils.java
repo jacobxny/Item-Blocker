@@ -29,8 +29,6 @@ import java.util.logging.Logger;
 public class DroppingUtils {
 
 
-    public static ArrayList<ItemStack> tempBlockedItems = new ArrayList<>();
-
     private static final Minecraft client = Minecraft.getInstance();
 
     public static CreativeModeTab creativeTab;
@@ -63,7 +61,7 @@ public class DroppingUtils {
         for (int i = 0; i < player.containerMenu.slots.size(); i++) {
             ItemStack stack = player.containerMenu.getSlot(i).getItem();
             int defaultRange = i < 9 ? i + 36 : i;
-            if (!stack.isEmpty() && (BlockedItemsConfig.isBlocked(stack) || tempBlockedItems.contains(stack))) {
+            if (!stack.isEmpty() && (BlockedItemsConfig.isBlocked(stack))) {
                 Loggers.CLIENT_LOGGER.info("Dropping blocked item from slot {}: {}", i, stack.getItem());
                 if (client.gameMode != null) {
                     try {
