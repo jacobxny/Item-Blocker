@@ -69,6 +69,18 @@ public class ItemUtil {
         return getItemName(stack);
     }
 
+    public static boolean isMusicDisc(ItemStack stack) {
+        return stack.getComponents().has(DataComponents.JUKEBOX_PLAYABLE);
+    }
+
+    public static String getMusicDiscName(ItemStack stack) {
+        JukeboxPlayable playable = stack.get(DataComponents.JUKEBOX_PLAYABLE);
+        if (playable == null) {
+            return "";
+        }
+        return playable.song().value().description().getString();
+    }
+
 
     private static String getItemName(@NotNull ItemStack itemStack) {
         return itemStack.getItemName().getString();
