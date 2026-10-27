@@ -7,10 +7,7 @@ import com.itemblocker.api.enums.PickupMode;
 import com.itemblocker.api.screen.GlobalScreen;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
-/* import com.terraformersmc.modmenu.ModMenu;
 import com.terraformersmc.modmenu.gui.ModsScreen;
-
- */
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -213,10 +210,10 @@ public class SettingsScreen extends GlobalScreen {
     @Override
     public void onClose() {
         if (BlockedItemsConfig.getAlignmentMode() == AlignmentMode.LEFT_ALIGNED) {
-            parent = new LeftAlignedScreen(null/*new ModsScreen(null)*/);
+            parent = new LeftAlignedScreen(new ModsScreen(null));
         }
         else {
-            parent = new BlockedItemsScreen(null /*new ModsScreen(null)*/);
+            parent = new BlockedItemsScreen(new ModsScreen(null));
         }
         this.minecraft.gui.setScreen(parent);
     }
