@@ -2,11 +2,11 @@ package com.itemblocker.client.screen.presets;
 
 import com.itemblocker.api.PresetSharing;
 import com.itemblocker.api.screen.misc.Colors;
-import com.itemblocker.api.enums.MouseClick;
 import com.itemblocker.api.screen.GlobalScreen;
 import com.itemblocker.client.config.PresetsConfig;
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.client.screen.presets.edit.EditPresetScreen;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -91,7 +91,7 @@ public class PresetsScreen extends GlobalScreen {
         graphics.text(this.font, Component.translatable("itemblocker.text.your_presets"), this.width / 2 - 150, listY - 9, Colors.WHITE, false);
 
 
-        graphics.fill(this.width / 2 - 155, listY, this.width / 2 + 155, listY + listHeight, 0x80000000);
+        graphics.fill(this.width / 2 - 155, listY, this.width / 2 + 165, listY + listHeight, 0x80000000);
 
         if (presetsList.isEmpty()) {
             graphics.centeredText(
@@ -288,7 +288,7 @@ public class PresetsScreen extends GlobalScreen {
     @Override
     public boolean mouseClicked(@NonNull MouseButtonEvent click, boolean doubleClick) {
         if (showingExportPopup) {
-            if (click.input() == MouseClick.MIDDLE_CLICK.value() || click.input() == MouseClick.RIGHT_CLICK.value()) {
+            if (click.input() != InputConstants.MOUSE_BUTTON_LEFT) {
                 return false;
             }
             int popupW = 320;
@@ -322,7 +322,7 @@ public class PresetsScreen extends GlobalScreen {
         }
 
         else if (showingDeletePopup) {
-            if (click.input() == MouseClick.MIDDLE_CLICK.value() || click.input() == MouseClick.RIGHT_CLICK.value()) {
+            if (click.input() != InputConstants.MOUSE_BUTTON_LEFT) {
                 return false;
             }
             int popupW = 320;
@@ -369,12 +369,8 @@ public class PresetsScreen extends GlobalScreen {
                 int applyX = this.width / 2 + 5;
                 if (click.x() >= applyX && click.x() <= applyX + 38 &&
                         click.y() >= yOffset && click.y() <= yOffset + 20) {
-                    if (isShiftDown) {
-                        PresetsConfig.applyPreset(entry.name, false);
-                    }
-                    else {
-                        PresetsConfig.applyPreset(entry.name, true);
-                    }
+                    PresetsConfig.applyPreset(entry.name, !isShiftDown);
+                    SystemToast.add(minecraft.gui.toastManager(), new SystemToast.SystemToastId(4000), Component.literal("Applied preset!"), Component.literal("Applied: §6" + entry.name));
                     this.playClickSound();
                     Loggers.PRESETS_LOGGER.info("Applied preset: {}", entry.name);
                 }
