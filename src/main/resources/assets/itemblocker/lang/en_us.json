@@ -65,7 +65,7 @@
   "itemblocker.text.item_show_ids": "- Items are shown using their item ids instead of their names",
   "itemblocker.text.looks_like_id": "- Will look like this: minecraft:grass_block",
   "itemblocker.text.use_item_names": "Mode: Use Item Names",
-  "itemblocker.text.item_show_names": "- Items are shown using their item names instead of their ids",
+  "itemblocker.text.item_show_names": "- Items are shown using their item names instead of their IDs",
   "itemblocker.text.looks_like_name": "- Will look like this: Grass Block",
   "itemblocker.text.item_ids": "Use Item ID's",
   "itemblocker.text.item_names": "Use Item Names",
