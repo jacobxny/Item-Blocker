@@ -40,7 +40,7 @@ public class DroppingUtils {
      * <p>
      * If dropping through the interaction manager fails, the item is dropped manually through {@link net.minecraft.client.player.LocalPlayer#drop(ItemStack, boolean, Prediction)} and a drop packet is sent to the server.
      * <p></p>
-     * However, this way is very brittle and sometimes doesn't work as expected.
+     * However, this way is very buggy and sometimes doesn't work as expected.
      */
     public static void iterateInventory() {
         KeyOptions options = ItemBlockerClient.getOptions();
