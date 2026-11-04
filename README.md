@@ -73,7 +73,12 @@ Some mods may use a different format but this is the usual format for most mods.
 
 **Do it here -->** [Issues](https://github.com/jacobxny/Issues/issues)
 
+# Want to help translate the mod into other languages?
+**Do it here -->** [Translate](https://crowdin.com/project/item-blocker)
+
 # How to build from source
 - 1. Download the source code either by pressing the code button and clicking download zip or pulling the relevant files from github through git pull
 - 2. Once you've placed the source code into your code base, you can load the gradle project, it should take around 1 - 2 minutes on first build
-- 3. After it's finished loading, you can run ./gradlew build to generate the build, you can find the jar in build/libs  
+- 3. After it's finished loading, you can run ./gradlew build to generate the build, you can find the jar in build/libs
+ 
+
