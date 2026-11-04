@@ -1,0 +1,5 @@
+preserve_hierarchy: true
+
+files:
+  - source: /src/main/resources/assets/itemblocker/lang/en_us.json
+    translation: /src/main/resources/assets/itemblocker/lang/%locale_with_underscore%.json
