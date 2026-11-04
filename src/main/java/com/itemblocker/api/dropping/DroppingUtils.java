@@ -8,10 +8,7 @@ import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AnvilScreen;
-import net.minecraft.client.gui.screens.inventory.ContainerScreen;
-import net.minecraft.client.gui.screens.inventory.CraftingScreen;
-import net.minecraft.client.gui.screens.inventory.HopperScreen;
+import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
@@ -65,6 +62,9 @@ public class DroppingUtils {
                 Loggers.CLIENT_LOGGER.info("Dropping blocked item from slot {}: {}", i, stack.getItem());
                 if (client.gameMode != null) {
                     try {
+                        if (client.gui.screen() instanceof CreativeModeInventoryScreen) {
+                            return;
+                        }
                         int amount = getAmountToChange(client.gui.screen());
 
                         client.gameMode.handleContainerInput(
