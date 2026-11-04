@@ -2,13 +2,13 @@ package com.itemblocker.api.screen;
 
 import com.itemblocker.api.RegistryUtils;
 import com.itemblocker.api.enums.ItemIDMode;
-import com.itemblocker.api.enums.MouseClick;
 import com.itemblocker.api.item.ItemUtil;
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.api.records.ItemEntry;
 import com.itemblocker.api.screen.misc.Colors;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
@@ -24,6 +24,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -35,7 +36,7 @@ import org.jspecify.annotations.NonNull;
 import java.util.*;
 import java.util.function.Predicate;
 
-public abstract class AbstractItemWidget extends GlobalScreen {
+public abstract class AbstractItemWidget extends GlobalScreen  {
 
     private static final Identifier MISSING_TEXTURE = Identifier.withDefaultNamespace("textures/item/barrier.png");
     private final Identifier SEARCH_TEXTURE = Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/search.png");
@@ -44,16 +45,19 @@ public abstract class AbstractItemWidget extends GlobalScreen {
     private static final float BUTTON_HOVER_SCALE = 1.18f;
     private static final float BUTTON_HOVER_ANIM_SPEED = 14f;
 
-    protected int scrollOffset;
+    private int scrollOffset;
     public static boolean isDragging = false;
+    private static boolean areItemsPopulated = false;
+    private boolean isScrollbarRendering = false;
     public final WidgetGraphics widgetGraphics;
+    private static int keyCount = 0;
     public Button addButton;
     public Button doneButton;
     public int itemsPerPage;
     public int maxScroll;
 
     private boolean isDraggingScrollbar = false;
-    public boolean searching = false;
+    public static boolean searching = false;
     private int scrollbarDragGrabOffset = 0;
     private static final int SCROLLBAR_WIDTH = 6;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 12;
@@ -61,11 +65,13 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
 
     private static final Map<String, Float> shakeTimers = new HashMap<>();
-    public static final ArrayList<ItemEntry> allItems = new ArrayList<>();
+    public static final List<ItemEntry> allItems = new ArrayList<>();
+    public List<ItemEntry> storedItems = new ArrayList<>();
     private final List<ItemEntry> filteredItems = new ArrayList<>();
     public static  String editBoxQuery = "";
     private static String draggedItemId = null;
     private int dragOriginX, dragOriginY;
+    public EditBox inputField;
     private int dragGrabOffsetX, dragGrabOffsetY;
     private float dragCurrentX, dragCurrentY;
     protected static boolean springingBack = false;
@@ -90,7 +96,6 @@ public abstract class AbstractItemWidget extends GlobalScreen {
     private boolean canScrollUp = false;
     private boolean canScrollDown = false;
 
-    protected abstract String getHeaderText();
 
     protected abstract int getListY();
 
@@ -99,10 +104,6 @@ public abstract class AbstractItemWidget extends GlobalScreen {
     protected abstract int getListX();
 
     protected abstract int getListWidth();
-
-    protected abstract EditBox getEditBox();
-
-    protected abstract List<ItemEntry> getItemList();
 
     protected abstract String getEmptyListText();
 
@@ -115,6 +116,9 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
     @Override
     protected void init() {
+        if (!RegistryUtils.isRegistryLoaded) {
+            populateItems();
+        }
         addButton = Button.builder(Component.translatable("itemblocker.text.add_item"), button -> checkItemId())
                 .bounds(this.width / 2 - 100, 65, 200, 20)
                 .build();
@@ -127,17 +131,22 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
         this.addRenderableWidget(doneButton);
 
-
-        Set<Identifier> registryList = BuiltInRegistries.ITEM.keySet();
-        allItems.clear();
-        for (final Identifier id : registryList) {
-            Item item = BuiltInRegistries.ITEM.getValue(id);
-            String itemId = ItemUtil.getItemDetails(item.getDefaultInstance(), ItemIDMode.USE_ITEM_ID);
-            allItems.add(new ItemEntry(itemId));
-        }
-        if (BlockedItemsConfig.listItemsAlphabetically()) {
-            this.sortList(allItems);
-        }
+        this.inputField = new EditBox(
+                this.font,
+                this.width / 2 - 100,
+                40,
+                200,
+                20,
+                Component.translatable("itemblocker.text.item_id")
+        );
+        this.addRenderableWidget(inputField);
+        this.setInitialFocus(inputField);
+        this.inputField.setMaxLength(256);
+        this.inputField.setHint(Component.literal("minecraft:rotten_flesh"));
+        this.inputField.setResponder(text -> {
+            editBoxQuery = text;
+            this.refreshResults();
+        });
         this.refreshResults();
     }
 
@@ -147,8 +156,10 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         this.itemsPerPage = (this.getListHeight() - 10) / 22;
         this.maxScroll = Math.max(0, this.getActiveList().size() - itemsPerPage);
         this.scrollOffset = Mth.clamp(this.scrollOffset, 0, this.maxScroll);
-        this.renderSearchButton(graphics, mouseX, mouseY);
+        this.isScrollbarRendering = itemsPerPage < this.getActiveList().size();
+
         this.renderWidget(graphics, mouseX, mouseY);
+        this.renderSearchButton(graphics, mouseX, mouseY);
     }
 
 
@@ -166,15 +177,15 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         int x1 = this.getListWidth();
 
         Component header = searching
-                ? Component.literal("Items: " + itemEntries.size())
-                : Component.translatable(this.getHeaderText(), itemEntries.size());
+                ? Component.translatable("itemblocker.text.items", itemEntries.size())
+                : Component.translatable("itemblocker.text.blocked_items", itemEntries.size());
         graphics.text(this.font, header, x0 + 10, listY - 8, Colors.WHITE, false);
 
         graphics.fill(x0, listY, x0 + x1, listY + listHeight, 0x80000000);
 
         if (itemEntries.isEmpty()) {
             Component empty = searching
-                    ? Component.literal("No items match your search")
+                    ? Component.translatable("itemblocker.text.no_items_match")
                     : Component.translatable(this.getEmptyListText());
             graphics.centeredText(this.font, empty, width / 2, listY + listHeight / 2, 0xFF888888);
             return;
@@ -198,7 +209,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
             }
 
             this.renderItemIcon(graphics, entry, itemX, yOffset, 0f);
-            this.renderItemRow(graphics, entry, yOffset, mouseX, mouseY, searching);
+            this.renderItemRow(graphics, entry, yOffset, mouseX, mouseY);
             yOffset += 22;
         }
 
@@ -214,19 +225,19 @@ public abstract class AbstractItemWidget extends GlobalScreen {
             }
             this.renderItemIcon(graphics, draggedEntry, dragCurrentX, dragCurrentY, dragTiltAngle);
             int normalRowY = listY + 5 + (itemEntries.indexOf(draggedEntry) - scrollOffset) * 22;
-            this.renderItemRow(graphics, draggedEntry, normalRowY, mouseX, mouseY, searching);
+            this.renderItemRow(graphics, draggedEntry, normalRowY, mouseX, mouseY);
         }
 
-        if (itemsPerPage < itemEntries.size()) {
-            this.renderScrollBar(graphics, mouseX, mouseY);
+        if (isScrollbarRendering) {
+            this.renderScrollbar(graphics, mouseX, mouseY);
         }
     }
 
     public void renderSearchButton(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         long now = System.nanoTime();
         float deltaSeconds = lastButtonFrameTimeNanos < 0 ? 0f : (now - lastButtonFrameTimeNanos) / 1_000_000_000f;
-        int searchX = this.getEditBox().getRight() + 7;
-        int searchY = this.getEditBox().getY() + 2;
+        int searchX = inputField.getRight() + 7;
+        int searchY = inputField.getY() + 2;
         lastButtonFrameTimeNanos = now;
 
 
@@ -238,11 +249,11 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
         searchHoverProgress = this.approach(searchHoverProgress, searchHovered ? 1f : 0f, BUTTON_HOVER_ANIM_SPEED, deltaSeconds);
 
-        widgetGraphics.animatedButton(graphics, SEARCH_TEXTURE, searchX, searchY, searchHoverProgress, searchHovered, false, "Search");
+        widgetGraphics.animatedButton(graphics, SEARCH_TEXTURE, searchX, searchY, searchHoverProgress, searchHovered, false, Component.translatable("itemblocker.text.search"));
     }
 
 
-    protected void renderScrollBar(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    protected void renderScrollbar(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int trackX0 = this.scrollbarX0();
         int trackX1 = this.scrollbarX1() + 1;
         int fullY0 = this.getListY();
@@ -367,13 +378,13 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
 
     private boolean handleScrollbarClick(MouseButtonEvent event) {
-        if (event.input() != MouseClick.LEFT_CLICK.value() || isDragging || springingBack) {
+        if (event.input() != InputConstants.MOUSE_BUTTON_LEFT || isDragging || springingBack) {
             return false;
         }
 
 
         List<ItemEntry> itemEntries = this.getActiveList();
-        if (itemEntries == null || itemsPerPage <= 0 || itemEntries.size() <= itemsPerPage) {
+        if (itemEntries == null || itemsPerPage <= 0 || !isScrollbarRendering) {
             return false;
         }
 
@@ -465,7 +476,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         lastDragMouseX = mouseX;
     }
 
-    private float approach(float current, float target, float speed, float deltaSeconds) {
+    public float approach(float current, float target, float speed, float deltaSeconds) {
         if (deltaSeconds <= 0f) return current;
         float t = 1f - (float) Math.exp(-speed * deltaSeconds);
         return current + (target - current) * t;
@@ -490,8 +501,8 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         dragCurrentX += dragVelX * deltaSeconds;
         dragCurrentY += dragVelY * deltaSeconds;
 
-        boolean closeEnough = Mth.abs(dx) < SPRING_SNAP_THRESHOLD && Math.abs(dy) < SPRING_SNAP_THRESHOLD;
-        boolean slowEnough = Mth.abs(dragVelX) < SPRING_VEL_THRESHOLD && Math.abs(dragVelY) < SPRING_VEL_THRESHOLD;
+        boolean closeEnough = Mth.abs(dx) < SPRING_SNAP_THRESHOLD && Mth.abs(dy) < SPRING_SNAP_THRESHOLD;
+        boolean slowEnough = Mth.abs(dragVelX) < SPRING_VEL_THRESHOLD && Mth.abs(dragVelY) < SPRING_VEL_THRESHOLD;
 
         if (closeEnough && slowEnough) {
             dragCurrentX = dragOriginX;
@@ -532,7 +543,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         pose.popMatrix();
     }
 
-    private void renderItemRow(GuiGraphicsExtractor graphics, @NotNull ItemEntry entry, int yOffset, int mouseX, int mouseY, boolean searching) {
+    private void renderItemRow(GuiGraphicsExtractor graphics, @NotNull ItemEntry entry, int yOffset, int mouseX, int mouseY) {
         ItemStack stack = entry.getItemStack();
         String displayText;
 
@@ -552,10 +563,9 @@ public abstract class AbstractItemWidget extends GlobalScreen {
             displayText = ItemUtil.getMusicDiscName(stack);
         }
 
-
-        int length = displayText.length();
-        if (length > 25) {
-            displayText = displayText.substring(0, 25) + "...";
+        int textWidth = this.font.width(displayText);
+        if (textWidth > 136) {
+            displayText = this.font.plainSubstrByWidth(displayText, 136).strip() + "...";
         }
         graphics.text(this.font, displayText, this.getListX() + 30, yOffset + 4, Colors.WHITE, false);
 
@@ -583,8 +593,8 @@ public abstract class AbstractItemWidget extends GlobalScreen {
     @Override
     public boolean mouseClicked(@NonNull MouseButtonEvent event, boolean doubleClick) {
         boolean grabbedScrollbar = this.handleScrollbarClick(event);
-        int searchX = this.getEditBox().getRight() + 7;
-        int searchY = this.getEditBox().getY() + 2;
+        int searchX = this.inputField.getRight() + 7;
+        int searchY = this.inputField.getY() + 2;
         if (grabbedScrollbar) {
             return super.mouseClicked(event, doubleClick);
         }
@@ -613,7 +623,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
                 if (event.x() >= itemX && event.x() <= itemX + 14 &&
                         event.y() >= itemY && event.y() <= itemY + 14) {
-                    if (event.input() == MouseClick.LEFT_CLICK.value()) {
+                    if (event.input() == InputConstants.MOUSE_BUTTON_LEFT) {
                         this.startShake(entry, 0.25f);
                     }
                     else {
@@ -622,7 +632,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
                     if (ItemBlockerClient.isDev) {
                         Loggers.CLIENT_LOGGER.info("input = {}", event.input());
                     }
-                    if (event.input() == MouseClick.LEFT_CLICK.value()) {
+                    if (event.input() == InputConstants.MOUSE_BUTTON_LEFT) {
                         draggedItemId = entry.itemId();
                         dragOriginX = itemX;
                         dragOriginY = itemY;
@@ -649,7 +659,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         if (searching) {
             return filteredItems;
         }
-        List<ItemEntry> list = this.getItemList();
+        List<ItemEntry> list = this.storedItems;
         return list == null ? List.of() : list;
     }
 
@@ -673,10 +683,16 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         if (isDragging || springingBack) {
             return false;
         }
-        EditBox itemInputField = this.getEditBox();
+        if (input.key() == InputConstants.KEY_RCONTROL) {
+            keyCount += 1;
+            if (keyCount == 10) {
+                this.shakeAllItems(0.8f);
+                keyCount = 0;
+            }
+        }
         if (input.isConfirmation()) {
             this.checkItemId();
-            itemInputField.setValue("");
+            inputField.setValue("");
         }
         List<ItemEntry> active = this.getActiveList();
         if (active.size() <= itemsPerPage) {
@@ -706,8 +722,8 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
     @Override
     public void onClose() {
-        allItems.clear();
         filteredItems.clear();
+        keyCount = 0;
         editBoxQuery = "";
         searching = false;
         clearScreenEffects();
@@ -757,8 +773,9 @@ public abstract class AbstractItemWidget extends GlobalScreen {
      */
 
     private void shakeAllItems(float intensity) {
-        intensity = Mth.clamp(intensity, 0, 1);
-        for (ItemEntry entry : this.getActiveList()) {
+        List<ItemEntry> itemEntries = this.getActiveList();
+        for (int i = scrollOffset; i < itemEntries.size() && i < scrollOffset + itemsPerPage; i++) {
+            ItemEntry entry = itemEntries.get(i);
             this.startShake(entry, intensity);
         }
     }
@@ -771,6 +788,8 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         draggedItemId = null;
         springingBack = false;
         isDragging = false;
+        searching = false;
+        keyCount = 0;
         shakeTimers.clear();
     }
 
@@ -790,23 +809,13 @@ public abstract class AbstractItemWidget extends GlobalScreen {
         --this.scrollOffset;
     }
 
-    protected void decreaseScrollOffset(int amount) {
-        this.scrollOffset -= amount;
-    }
-
-    protected void increaseScrollOffset(int amount) {
-        this.scrollOffset += amount;
-    }
-
-
     @Override
     public void tick() {
-        super.tick();
-        shakeTimers.replaceAll((id, time) -> Math.max(0f, time - 0.05f));
+        shakeTimers.replaceAll((_, time) -> Math.max(0f, time - 0.05f));
         shakeTimers.values().removeIf(t -> t <= 0f);
     }
 
-    public void sortList(List<ItemEntry> list) {
+    public static void sortList(List<ItemEntry> list) {
         list.sort(Comparator.comparing(
                 entry -> {
                     ItemStack stack = entry.getItemStack();
@@ -882,9 +891,30 @@ public abstract class AbstractItemWidget extends GlobalScreen {
                 && stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(query);
     }
 
-    private record ScrollThumbGeometry(int y, int height) {
-
+    /**
+     * This is used to add all items loaded into the registry to the item list.
+     * <br></br>
+     * Before this, items were added every {@link init()} call which wasn't too good for performance.
+     * This method can be only be called once to prevent the list from having duplicates and adding too many items unnecessarily
+     */
+    public static void populateItems() {
+        if (areItemsPopulated) {
+            return;
+        }
+        Set<Identifier> registryList = BuiltInRegistries.ITEM.keySet();
+        for (final Identifier id : registryList) {
+            Item item = BuiltInRegistries.ITEM.getValue(id);
+            String itemId = ItemUtil.getItemDetails(item.getDefaultInstance(), ItemIDMode.USE_ITEM_ID);
+            allItems.add(new ItemEntry(itemId));
+        }
+        if (BlockedItemsConfig.listItemsAlphabetically()) {
+            sortList(allItems);
+        }
+        areItemsPopulated = true;
+        Loggers.CLIENT_LOGGER.info("Amount of items in list: {}", allItems.size());
     }
+
+    private record ScrollThumbGeometry(int y, int height) {}
 
     public static class WidgetGraphics {
 
@@ -895,17 +925,17 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
         public void line(
                 GuiGraphicsExtractor graphics,
-                 float x1,
-                 float y1,
-                 float x2,
-                 float y2,
-                 float thickness,
-                 int color
+                float x1,
+                float y1,
+                float x2,
+                float y2,
+                float thickness,
+                int color
         ) {
             float dx = x2 - x1;
             float dy = y2 - y1;
-            float length = (float) Math.sqrt(dx * dx + dy * dy);
-            float angle = (float) Math.atan2(dy, dx);
+            float length = Mth.sqrt(dx * dx + dy * dy);
+            float angle = (float) Mth.atan2(dy, dx);
 
             Matrix3x2fStack pose = graphics.pose();
             pose.pushMatrix();
@@ -933,10 +963,10 @@ public abstract class AbstractItemWidget extends GlobalScreen {
             float angle = (float) Math.atan2(y2 - y1, x2 - x1);
             float spread = (float) Math.toRadians(25);
 
-            float leftX = x2 - headLength * (float) Math.cos(angle - spread);
-            float leftY = y2 - headLength * (float) Math.sin(angle - spread);
-            float rightX = x2 - headLength * (float) Math.cos(angle + spread);
-            float rightY = y2 - headLength * (float) Math.sin(angle + spread);
+            float leftX = x2 - headLength * Mth.cos(angle - spread);
+            float leftY = y2 - headLength * Mth.sin(angle - spread);
+            float rightX = x2 - headLength * Mth.cos(angle + spread);
+            float rightY = y2 - headLength * Mth.sin(angle + spread);
 
             line(graphics, x2, y2, leftX, leftY, thickness, color);
             line(graphics, x2, y2, rightX, rightY, thickness, color);
@@ -950,7 +980,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
                 float hoverProgress,
                 boolean hovered,
                 boolean renderBackground,
-                String tooltipText
+                MutableComponent tooltipText
         ) {
             if (renderBackground) {
                 if (hoverProgress > 0.01f) {
@@ -961,7 +991,7 @@ public abstract class AbstractItemWidget extends GlobalScreen {
 
             if (hovered) {
                 List<ClientTooltipComponent> component = new ArrayList<>();
-                Component text = Component.literal(tooltipText).withStyle(ChatFormatting.WHITE);
+                Component text = tooltipText.withStyle(ChatFormatting.WHITE);
                 component.add(ClientTooltipComponent.create(FormattedCharSequence.forward(text.getString(), text.getStyle())));
                 graphics.tooltip(this.font, component, x, y, DefaultTooltipPositioner.INSTANCE, ItemStack.EMPTY.getComponents().get(DataComponents.TOOLTIP_STYLE), false);
             }
