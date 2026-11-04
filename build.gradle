@@ -17,7 +17,7 @@ loom {
 	runs {
 		client {
 			setProgramArguments(
-				["--username", "jacobny", "--uuid", "bfc817ab-7aac-4bd7-83c0-333c93e4726e"]
+				["--username", "jacobxny", "--uuid", "bfc817ab-7aac-4bd7-83c0-333c93e4726e"]
 			)
 		}
 	}
@@ -113,6 +113,9 @@ publishMods {
 		accessToken = providers.environmentVariable("MODRINTH_TOKEN")
 		displayName = version
 		minecraftVersions.add(minecraft_version)
+		additionalFile(sourcesJar.archiveFile) {
+			type = SOURCES_JAR
+		}
 		requires {
 			id = "P7dR8mSH"
 		}
@@ -122,6 +125,9 @@ publishMods {
 		projectId = "1539849"
 		displayName = version
 		minecraftVersions.add(minecraft_version)
+		additionalFile(sourcesJar.archiveFile) {
+			name = version.toString() + "-sources"
+		}
 		requires("fabric-api")
 		client = true
 		server = true

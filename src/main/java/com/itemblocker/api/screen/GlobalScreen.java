@@ -8,6 +8,7 @@ import com.itemblocker.mixin.screen.CursorTypeInvoker;
 import com.mojang.blaze3d.platform.cursor.CursorType;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
@@ -80,9 +81,16 @@ public abstract class GlobalScreen extends Screen {
         };
     }
 
+    public void addToast(Component title, Component message) {
+        this.addToast(title, message, 4000);
+    }
+
+    public void addToast(Component title, Component message, long duration) {
+        SystemToast.add(this.minecraft.gui.toastManager(), new SystemToast.SystemToastId(duration), title, message);
+    }
 
     public void playClickSound() {
-        soundManager.play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1));
+        soundManager.play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1));
     }
 
     public void registerCustomCursors() {
@@ -98,7 +106,10 @@ public abstract class GlobalScreen extends Screen {
         ByteBuffer pixels;
         int w, h;
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            IntBuffer pw = stack.mallocInt(1), ph = stack.mallocInt(1), pc = stack.mallocInt(1);
+            IntBuffer pw = stack.mallocInt(1),
+                    ph = stack.mallocInt(1),
+                    pc = stack.mallocInt(1);
+
             ByteBuffer png = readResourceToByteBuffer(resourcePath);
             pixels = STBImage.stbi_load_from_memory(png, pw, ph, pc, 4);
             MemoryUtil.memFree(png);

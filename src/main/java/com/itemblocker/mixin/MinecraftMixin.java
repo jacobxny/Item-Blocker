@@ -2,6 +2,7 @@ package com.itemblocker.mixin;
 
 
 import com.itemblocker.api.RegistryUtils;
+import com.itemblocker.api.screen.AbstractItemWidget;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.client.config.BlockedItemsConfig;
@@ -25,11 +26,12 @@ public abstract class MinecraftMixin {
     public void loadRegistry(GameConfig gameConfig, CallbackInfo ci) {
         if (BlockedItemsConfig.shouldLoadRegistryOnLaunch()) {
             RegistryUtils.loadRegistry();
+            AbstractItemWidget.populateItems();
         }
         ItemBlockerClient.isDev = BlockedItemsConfig.devFlagsEnabled();
         if (ItemBlockerClient.isModMenuInstalled) {
             for (Mod mod : ModMenu.MODS.values()) {
-                if (this.isRemoveMod(mod)) {
+                if (this.removeMod(mod)) {
                     ItemBlockerClient.currentModList.remove(mod.getId());
                 }
             }
@@ -38,7 +40,7 @@ public abstract class MinecraftMixin {
     }
 
     @Unique
-    private boolean isRemoveMod(Mod mod) {
+    private boolean removeMod(Mod mod) {
         return mod.getBadges().contains(Mod.Badge.LIBRARY);
     }
 

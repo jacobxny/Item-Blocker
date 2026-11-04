@@ -1,12 +1,11 @@
 package com.itemblocker.api.logging;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import com.itemblocker.client.ItemBlockerClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class Loggers {
-    private static final String MOD_ID = "itemblocker";
+    private static final String MOD_ID = ItemBlockerClient.MOD_ID;
     private static final String PRESETS_ID = MOD_ID + " (Presets)";
     /**
      * Should only be used when logging server only things. <p></p>

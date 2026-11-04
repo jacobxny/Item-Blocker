@@ -112,5 +112,6 @@ public class LivingEntityMixin {
                 cir.cancel();
             }
         }
+        item = null;
     }
 }

@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
+import org.apache.commons.compress.utils.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
@@ -289,7 +290,7 @@ public abstract class BlockedItemsConfig {
         public boolean loadRegistryOnLaunch = true;
 
         @Comment("Enables development features used in testing to test experimental features. \nMay have excessive logging if enabled. \nRequires a restart to take effect.")
-        public boolean enableDevFlags = false;
+        public boolean enableDevFlags = FabricLoader.getInstance().isDevelopmentEnvironment();
 
         public boolean hasDoneTutorial = false;
 
@@ -298,7 +299,7 @@ public abstract class BlockedItemsConfig {
 
 
     private static class LegacyConfigData {
-        List<String> blockedItems = new ArrayList<>();
+        List<String> blockedItems = Lists.newArrayList();
         String pickupMode = PickupMode.CLIENT_ONLY.name();
         String alignmentMode = AlignmentMode.CENTER_ALIGNED.name();
         boolean useItemIds = false;
@@ -306,8 +307,10 @@ public abstract class BlockedItemsConfig {
     }
 
     public static HashSet<String> sortItems(HashSet<String> set) {
+        List<String> list = new ArrayList<>(set);
         if (listItemsAlphabetically) {
-            return set.stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new));
+            Collections.sort(list);
+            return new HashSet<>(list);
         }
         else {
             return set;

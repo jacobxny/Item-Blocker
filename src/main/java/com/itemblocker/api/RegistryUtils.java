@@ -2,6 +2,7 @@ package com.itemblocker.api;
 
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.client.ItemBlockerClient;
+import com.itemblocker.client.config.BlockedItemsConfig;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.worldselection.DataPackReloadCookie;
@@ -20,6 +21,7 @@ import net.minecraft.world.level.levelgen.WorldGenSettings;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -54,9 +56,9 @@ public class RegistryUtils {
         long end = Util.getMillis();
         long total = end - start;
 
-        if (ItemBlockerClient.isDev) {
-            Loggers.CLIENT_LOGGER.info("Data config: {}", dataConfig);
-            Loggers.CLIENT_LOGGER.info("Load config: {}", loadConfig);
+        if (BlockedItemsConfig.devFlagsEnabled()) {
+            Collection<String> dataPacks = loadConfig.packConfig().packRepository().getAvailableIds();
+            Loggers.CLIENT_LOGGER.info("Data packs: {}", dataPacks);
             Loggers.CLIENT_LOGGER.info("Load result: {}", loadResult);
         }
         isRegistryLoaded = true;
