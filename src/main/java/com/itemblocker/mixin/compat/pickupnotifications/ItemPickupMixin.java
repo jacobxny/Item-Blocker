@@ -22,6 +22,9 @@ public interface ItemPickupMixin {
         if (!options.isToggled()) {
             return;
         }
+        if (options.isTemporaryAllowPressed()) {
+            return;
+        }
 
         if (BlockedItemsConfig.isBlocked(stack)) {
             ci.cancel();
