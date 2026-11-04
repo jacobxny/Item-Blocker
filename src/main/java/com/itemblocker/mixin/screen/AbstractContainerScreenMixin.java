@@ -184,7 +184,48 @@ public abstract class AbstractContainerScreenMixin {
         }
         ItemStack item = hoveredSlot.getItem();
         if (BlockedItemsConfig.isBlocked(item)) {
-            ci.cancel();
+            if (isCreativeInvScreen && DroppingUtils.creativeTab.getType() == CreativeModeTab.Type.INVENTORY) {
+                if (isDefaultInventory) {
+                    ci.cancel();
+                }
+            }
+            else if (isCreativeInvScreen) {
+                if ((DroppingUtils.creativeTab.getType() != CreativeModeTab.Type.INVENTORY) && isCreativeHotbar) {
+                    if (BlockedItemsConfig.isBlocked(stack)) {
+                        ci.cancel();
+                    }
+                }
+            }
+            if (isDefaultInventoryScreen) {
+                if (isDefaultInventory) {
+                    ci.cancel();
+                }
+            }
+
+            if (isCraftingScreen) {
+                if (isCraftingInventory) {
+                    ci.cancel();
+                }
+            }
+
+
+            if (isHopperScreen) {
+                if (isHopperInventory) {
+                    ci.cancel();
+                }
+            }
+
+            if (isAnvilScreen) {
+                if (isAnvilInventory) {
+                    ci.cancel();
+                }
+            }
+
+            if (isContainerScreen) {
+                if (isContainerInventory) {
+                    ci.cancel();
+                }
+            }
         }
     }
 
