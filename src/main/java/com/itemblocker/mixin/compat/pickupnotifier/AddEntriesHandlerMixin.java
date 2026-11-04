@@ -27,6 +27,10 @@ public class AddEntriesHandlerMixin {
             return;
         }
 
+        if (options.isTemporaryAllowPressed()) {
+            return;
+        }
+
         if (BlockedItemsConfig.isBlocked(itemStack)) {
             ci.cancel();
         }
