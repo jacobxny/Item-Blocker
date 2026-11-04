@@ -1,12 +1,12 @@
 package com.itemblocker.api.screen;
 
 import com.itemblocker.api.RegistryUtils;
-import com.itemblocker.api.enums.MouseClick;
 import com.itemblocker.api.item.ItemUtil;
 import com.itemblocker.api.records.ItemEntry;
 import com.itemblocker.api.screen.misc.Colors;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -142,7 +142,7 @@ public abstract class LeftAlignedItemWidget extends GlobalScreen {
         }
 
 
-        graphics.text(this.font, Component.literal("Enter an Item ID:"), this.getListX() + 8, this.getListY() - 32, Colors.WHITE);
+        graphics.text(this.font, Component.translatable("itemblocker.text.enter_id"), this.getListX() + 8, this.getListY() - 32, Colors.WHITE);
 
         String noItemText = this.getEmptyListText();
         if (noItemText == null) {
@@ -324,7 +324,7 @@ public abstract class LeftAlignedItemWidget extends GlobalScreen {
      * starts dragging immediately. Returns true if the click was consumed.
      */
     private boolean handleScrollbarClick(MouseButtonEvent event) {
-        if (event.input() != MouseClick.LEFT_CLICK.value() || isDragging || springingBack) {
+        if (event.input() != InputConstants.MOUSE_BUTTON_LEFT || isDragging || springingBack) {
             return false;
         }
 
@@ -532,13 +532,13 @@ public abstract class LeftAlignedItemWidget extends GlobalScreen {
 
                 if (event.x() >= itemX && event.x() <= itemX + 14 &&
                         event.y() >= itemY && event.y() <= itemY + 14) {
-                    if (event.input() == MouseClick.LEFT_CLICK.value()) {
+                    if (event.input() == InputConstants.MOUSE_BUTTON_LEFT) {
                         this.startShake(entry.itemId(), 0.25f);
                     }
                     else {
                         this.startShake(entry.itemId(), 0.4f);
                     }
-                    if ((event.input() ==  MouseClick.MIDDLE_CLICK.value()) || (event.input() == MouseClick.RIGHT_CLICK.value())) {
+                    if (event.input() != InputConstants.MOUSE_BUTTON_LEFT) {
                         return false;
                     }
                     draggedItemId = entry.itemId();
@@ -618,7 +618,7 @@ public abstract class LeftAlignedItemWidget extends GlobalScreen {
             this.updateScrollFromThumbY((int) event.y() - scrollbarDragGrabOffset);
             return true;
         }
-        if ((event.input() ==  MouseClick.MIDDLE_CLICK.value()) || (event.input() == MouseClick.RIGHT_CLICK.value())) {
+        if (event.input() != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         if (draggedItemId != null && !springingBack) {

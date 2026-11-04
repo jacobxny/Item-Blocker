@@ -134,34 +134,33 @@ public class LeftAlignedScreen extends LeftAlignedItemWidget {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         if (invalidIDStartTime >= 0) {
             int color = fadeManager.fadeOut(Fade.LONG_RED_FADE, invalidIDStartTime);
-            graphics.text(this.font, Component.literal("Invalid Item ID, did you type it correctly?"), this.width / 2 - 103, 27, color, false);
+            graphics.text(this.font, Component.translatable("itemblocker.text.invald_id"), this.width / 2 - 103, 27, color, false);
         }
         else if (successTime >= 0) {
             int color = fadeManager.fadeOut(Fade.GREEN_FADE, successTime);
-            String text = "Successfully added: ";
-
+            String text;
             if (ItemBlockerClient.isUsingIDMode()) {
-                text += itemId;
+                text = itemId;
             }
             else {
-                text += ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
+                text = ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
             }
-            Component component = Component.literal(text);
+            Component component = Component.translatable("itemblocker.text.success", text);
+
             FormattedCharSequence toRender = component.getVisualOrderText();
             graphics.text(this.font, toRender, (this.width / 2) - this.font.width(toRender) / 2, 27, color, false);
         }
         else if (alreadyTime >= 0) {
             int color = fadeManager.fadeOut(Fade.YELLOW_FADE, alreadyTime);
-            String text = "";
+            String text;
             if (ItemBlockerClient.isUsingIDMode()) {
-                text += itemId;
+                text = itemId;
             }
 
             else {
-                text += ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
+                text = ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
             }
-            text += " is already blocked!";
-            Component component = Component.literal(text);
+            Component component = Component.translatable("itemblocker.text.already_blocked", text);
             FormattedCharSequence toRender = component.getVisualOrderText();
             graphics.text(this.font, toRender, (this.width / 2) - this.font.width(toRender) / 2, 27, color, false);
         }

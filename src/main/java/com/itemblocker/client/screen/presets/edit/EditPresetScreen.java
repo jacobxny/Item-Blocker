@@ -26,8 +26,6 @@ import java.util.List;
 
 public class EditPresetScreen extends AbstractItemWidget {
     private final String presetName;
-    private EditBox itemInputField;
-    private List<ItemEntry> itemsList;
     private long invalidIDStartTime = -1;
     private long successTime = -1;
     private long alreadyTime = -1;
@@ -36,11 +34,6 @@ public class EditPresetScreen extends AbstractItemWidget {
     public EditPresetScreen(Screen parent, String presetName) {
         super(Component.translatable("itemblocker.text.edit_preset", presetName), parent);
         this.presetName = presetName;
-    }
-
-    @Override
-    public String getHeaderText() {
-        return "itemblocker.text.items_in_preset";
     }
 
     @Override
@@ -59,19 +52,8 @@ public class EditPresetScreen extends AbstractItemWidget {
     }
 
     @Override
-    protected EditBox getEditBox() {
-        return itemInputField;
-    }
-
-    @Override
     public int getListHeight() {
         return height - 135;
-    }
-
-
-    @Override
-    public List<ItemEntry> getItemList() {
-        return itemsList;
     }
 
     @Override
@@ -85,24 +67,8 @@ public class EditPresetScreen extends AbstractItemWidget {
     }
 
     @Override
-    protected void init() {
+    public void init() {
         super.init();
-        this.itemInputField = new EditBox(
-                this.font,
-                this.width / 2 - 100,
-                40,
-                200,
-                20,
-                Component.translatable("itemblocker.text.item_id")
-        );
-        this.itemInputField.setMaxLength(256);
-        this.itemInputField.setResponder(text -> {
-            editBoxQuery = text;
-            this.refreshResults();
-        });
-        this.addRenderableWidget(this.itemInputField);
-        this.setInitialFocus(this.itemInputField);
-
 
         Button editButton = Button.builder(Component.translatable("Edit Name"), button -> {
                     minecraft.gui.setScreen(new EditPresetNameScreen(this, presetName));
@@ -117,11 +83,11 @@ public class EditPresetScreen extends AbstractItemWidget {
 
 
     private void refreshList() {
-        this.itemsList = new ArrayList<>();
+        this.storedItems = new ArrayList<>();
         for (String itemId : PresetsConfig.getPreset(presetName)) {
-            this.itemsList.add(new ItemEntry(itemId));
+            this.storedItems.add(new ItemEntry(itemId));
         }
-        this.sortList(itemsList);
+        sortList(storedItems);
     }
 
 
@@ -130,36 +96,35 @@ public class EditPresetScreen extends AbstractItemWidget {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         if (invalidIDStartTime >= 0) {
             int color = fadeManager.fadeOut(Fade.LONG_RED_FADE, invalidIDStartTime);
-            graphics.text(this.font, Component.literal("Invalid Item ID, did you type it correctly?"), this.width / 2 - 103, 27, color, false);
+            graphics.text(this.font, Component.translatable("itemblocker.text.invald_id"), this.width / 2 - 103, 27, color, false);
         }
         else if (successTime >= 0) {
             int color = fadeManager.fadeOut(Fade.GREEN_FADE, successTime);
-            String text = "Successfully added: ";
-
+            String text;
             if (ItemBlockerClient.isUsingIDMode()) {
-                text += itemId;
+                text = itemId;
             }
             else {
-                text += ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
+                text = ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
             }
-            Component component = Component.literal(text);
-            FormattedCharSequence toRender = component.getVisualOrderText();
-            graphics.text(font, toRender, (this.width / 2) - font.width(toRender) / 2, 27, color, false);
-        }
+            Component component = Component.translatable("itemblocker.text.success", text);
 
+            FormattedCharSequence toRender = component.getVisualOrderText();
+            graphics.text(this.font, toRender, (this.width / 2) - this.font.width(toRender) / 2, 27, color, false);
+        }
         else if (alreadyTime >= 0) {
             int color = fadeManager.fadeOut(Fade.YELLOW_FADE, alreadyTime);
-            String text = "";
+            String text;
             if (ItemBlockerClient.isUsingIDMode()) {
-                text += itemId;
+                text = itemId;
             }
+
             else {
-                text += ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
+                text = ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
             }
-            text += " is already blocked!";
-            Component component = Component.literal(text);
+            Component component = Component.translatable("itemblocker.text.already_blocked", text);
             FormattedCharSequence toRender = component.getVisualOrderText();
-            graphics.text(font, toRender, (this.width / 2) - font.width(toRender) / 2, 27, color, false);
+            graphics.text(this.font, toRender, (this.width / 2) - this.font.width(toRender) / 2, 27, color, false);
         }
     }
 
@@ -210,7 +175,7 @@ public class EditPresetScreen extends AbstractItemWidget {
 
     @Override
     protected void checkItemId() {
-        itemId = this.itemInputField.getValue().trim();
+        itemId = this.inputField.getValue().trim();
         if (!itemId.isEmpty()) {
             itemId = itemId.toLowerCase().replace(" ", "_");
             String normalItemName = itemId;
@@ -232,7 +197,7 @@ public class EditPresetScreen extends AbstractItemWidget {
                     }
                     PresetsConfig.addItemToPreset(presetName, itemId);
                     invalidIDStartTime = -1;
-                    this.itemInputField.setValue("");
+                    this.inputField.setValue("");
                     this.refreshList();
                     Loggers.CLIENT_LOGGER.info("Added blocked item: {}", itemId);
                 }
@@ -252,7 +217,7 @@ public class EditPresetScreen extends AbstractItemWidget {
                         }
                         PresetsConfig.addItemToPreset(presetName, itemId);
                         invalidIDStartTime = -1;
-                        this.itemInputField.setValue("");
+                        this.inputField.setValue("");
                         this.refreshList();
                         Loggers.CLIENT_LOGGER.info("Added blocked item: {}", itemId);
                         break;

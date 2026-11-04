@@ -13,8 +13,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.logging.Logger;
-
 
 @SuppressWarnings("unused")
 public class KeyHandler {
@@ -65,10 +63,10 @@ public class KeyHandler {
 
         if (options.toggleFilterKey.consumeClick()) {
             if (options.isToggled()) {
-                minecraft.player.sendOverlayMessage(Component.literal("Filter is now:§c Disabled "));
+                minecraft.player.sendOverlayMessage(Component.translatable("itemblocker.text.disabled"));
                 options.setToggled(false);
             } else {
-                minecraft.player.sendOverlayMessage(Component.literal("Filter is now:§a Enabled "));
+                minecraft.player.sendOverlayMessage(Component.translatable("itemblocker.text.enabled"));
                 options.setToggled(true);
             }
         }
@@ -83,7 +81,7 @@ public class KeyHandler {
         if (options.isTemporaryAllowPressed() && minecraft.player != null) {
             Component key = options.temporaryBypassKey.getTranslatedKeyMessage();
             String stringKey = key.getString();
-            minecraft.player.sendOverlayMessage(Component.literal("Filter is temporarily disabled while§e " + stringKey + "§r is held"));
+            minecraft.player.sendOverlayMessage(Component.translatable("itemblocker.text.temporary_disabled", stringKey));
         }
 
 

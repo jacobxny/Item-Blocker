@@ -9,7 +9,6 @@ import com.itemblocker.client.screen.presets.edit.EditPresetScreen;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -302,7 +301,7 @@ public class PresetsScreen extends GlobalScreen {
             if (click.x() >= copyX && click.x() <= copyX + 70 &&
                     click.y() >= copyY && click.y() <= copyY + 20) {
                 this.playClickSound();
-                SystemToast.add(minecraft.gui.toastManager(), new SystemToast.SystemToastId(4000), Component.literal("Copied to clipboard!"), Component.literal("Copied export code to clipboard!"));
+                this.addToast(Component.literal("Copied to clipboard!"), Component.literal("Copied export code to clipboard!"));
                 showingExportPopup = false;
                 this.minecraft.keyboardHandler.setClipboard(exportCode);
                 Loggers.PRESETS_LOGGER.info("Copied preset code to clipboard");
@@ -369,8 +368,17 @@ public class PresetsScreen extends GlobalScreen {
                 int applyX = this.width / 2 + 5;
                 if (click.x() >= applyX && click.x() <= applyX + 38 &&
                         click.y() >= yOffset && click.y() <= yOffset + 20) {
+                    String toastTest;
+                    if (isShiftDown) {
+                        PresetsConfig.applyPreset(entry.name, false);
+                        toastTest = "Applied preset without clearing list!";
+                    }
+                    else {
+                        PresetsConfig.applyPreset(entry.name, true);
+                        toastTest = "Applied preset!";
+                    }
                     PresetsConfig.applyPreset(entry.name, !isShiftDown);
-                    SystemToast.add(minecraft.gui.toastManager(), new SystemToast.SystemToastId(4000), Component.literal("Applied preset!"), Component.literal("Applied: §6" + entry.name));
+                    this.addToast(Component.literal(toastTest), Component.literal("Applied: §6" + entry.name));
                     this.playClickSound();
                     Loggers.PRESETS_LOGGER.info("Applied preset: {}", entry.name);
                 }
@@ -444,7 +452,7 @@ public class PresetsScreen extends GlobalScreen {
             showingDeletePopup = false;
         }
         if (showingExportPopup && keyInput.isCopy()) {
-            SystemToast.add(minecraft.gui.toastManager(), new SystemToast.SystemToastId(4000), Component.literal("Copied to clipboard!"), Component.literal("Copied export code to clipboard!"));
+            this.addToast(Component.literal("Copied to clipboard!"), Component.literal("Copied export code to clipboard!"));
             minecraft.keyboardHandler.setClipboard(displayCode);
         }
         return super.keyPressed(keyInput);

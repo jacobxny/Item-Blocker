@@ -45,7 +45,7 @@ public class EditPresetNameScreen extends GlobalScreen {
         this.addRenderableWidget(this.nameField);
         this.setInitialFocus(this.nameField);
 
-        this.saveButton = Button.builder(Component.literal("Save"), button -> {
+        this.saveButton = Button.builder(Component.translatable("key.keyboard.ac.save"), button -> {
                     this.rename();
                 })
                 .bounds(this.width / 2 - 100, 90, 95, 20)
@@ -64,16 +64,16 @@ public class EditPresetNameScreen extends GlobalScreen {
     public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
-        graphics.centeredText(this.font, Component.literal("Current name: §e" + presetName), this.width / 2, 30, 0xFFAAAAAA);
-        graphics.text(this.font, Component.literal("Enter a new name for your preset"), this.width / 2 - 100, 45, 0xFFAAAAAA, false);
+        graphics.centeredText(this.font, Component.translatable("itemblocker.text.current_name", presetName), this.width / 2, 30, 0xFFAAAAAA);
+        graphics.text(this.font, Component.translatable("itemblocker.text.enter_new_name"), this.width / 2 - 100, 45, 0xFFAAAAAA, false);
         if (existingMessageStartTime >= 0) {
             int color = fadeManager.fadeOut(Fade.RED_FADE, existingMessageStartTime);
-            graphics.text(this.font, Component.literal("A preset with that name already exists"), this.width / 2 - 100, 130, color, false);
+            graphics.text(this.font, Component.translatable("itemblocker.text.already_exists"), this.width / 2 - 100, 130, color, false);
         }
 
         if (sameNameMessageTime >= 0) {
             int color = fadeManager.fadeOut(Fade.RED_FADE, sameNameMessageTime);
-            graphics.text(this.font, Component.literal("Cannot rename the preset to it's existing name"), this.width / 2 - 120, 130, color, false);
+            graphics.text(this.font, Component.translatable("itemblocker.text.rename_to_existing"), this.width / 2 - 120, 130, color, false);
         }
 
     }

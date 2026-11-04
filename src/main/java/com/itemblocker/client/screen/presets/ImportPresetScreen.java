@@ -139,7 +139,7 @@ public class ImportPresetScreen extends GlobalScreen {
 
         else if (invalidTime >= 0) {
             int color = fadeManager.fadeOut(Fade.RED_FADE, invalidTime);
-            Component message = Component.literal("Invalid preset code! Make sure you copied it correctly.");
+            Component message = Component.translatable("itemblocker.text.invalid");
             graphics.centeredText(this.font, message, this.width / 2, 130, color);
         }
 

@@ -65,9 +65,9 @@ public abstract class RaycastUtils {
             return;
         }
         if (isAlreadyBlocked) {
-            client.player.sendOverlayMessage(Component.literal("§e" + visualId + "§r is already in your blocked items list!"));
+            client.player.sendOverlayMessage(Component.translatable("itemblocker.text.already_blocked", visualId));
         } else {
-            client.player.sendOverlayMessage(Component.literal("Added§e " + visualId + "§r to your blocked items list!"));
+            client.player.sendOverlayMessage(Component.translatable("itemblocker.text.added_item", visualId));
             BlockedItemsConfig.addBlockedItem(itemStack);
         }
     }
