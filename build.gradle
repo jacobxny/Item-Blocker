@@ -126,7 +126,7 @@ publishMods {
 		displayName = version
 		minecraftVersions.add(minecraft_version)
 		additionalFile(sourcesJar.archiveFile) {
-			name = version.toString() + "-sources"
+			name = sourcesJar.archiveFileName
 		}
 		requires("fabric-api")
 		client = true
