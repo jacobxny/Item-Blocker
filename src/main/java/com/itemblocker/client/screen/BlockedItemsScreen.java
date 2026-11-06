@@ -207,9 +207,12 @@ public class BlockedItemsScreen extends AbstractItemWidget {
 
             graphics.fill(0, 0, width, height, bgColor);
             widgetGraphics.arrow(graphics, width / 2 - 200, height / 2 - 20, inputField.getX(), inputField.getY() + 20, 1, 5, col);
-            graphics.fill(width / 2 - 300, height / 2 - 20, width / 2 - 120, height / 2 + 30, col1);
-            graphics.outline(width / 2 - 300, height / 2 - 20, 180, 50, col);
-            graphics.textWithWordWrap(this.font, Component.translatable("itemblocker.tutorial.item_ids"), width / 2 - 297, height / 2 - 17, 177, col);
+            Component text = Component.translatable("itemblocker.tutorial.item_ids");
+            int textHeight = font.wordWrapHeight(text, 177);
+            int boxHeight = height / 2 - 20;
+            graphics.fill(width / 2 - 300, boxHeight, width / 2 - 120, boxHeight + textHeight + 10, col1);
+            graphics.outline(width / 2 - 300, boxHeight, 180, textHeight + 10, col);
+            graphics.textWithWordWrap(this.font, text, width / 2 - 297, height / 2 - 17, 177, col);
             graphics.text(this.font, Component.translatable("itemblocker.tutorial.skip"), 4, 8, textColor);
             if (test1Time < 0) {
                 inputField.extractRenderState(graphics, mouseX, mouseY, delta);
@@ -223,18 +226,24 @@ public class BlockedItemsScreen extends AbstractItemWidget {
             if (test2Time < 0) {
                 addButton.extractRenderState(graphics, mouseX, mouseY, delta);
             }
+            Component text = Component.translatable("itemblocker.tutorial.submit_item");
+            int textHeight = font.wordWrapHeight(text, 179);
+            int boxHeight = height / 2 - 10;
             graphics.outline(addButton.getX(), addButton.getY(), addButton.getWidth(), addButton.getHeight(), col2);
-            graphics.fill(width / 2 + 100, height / 2 - 10, width / 2 + 280, height / 2 + 40, col3);
-            graphics.outline(width / 2 + 100, height / 2 - 10, 180, 50, col2);
-            graphics.textWithWordWrap(this.font, Component.translatable("itemblocker.tutorial.submit_item"), width / 2 + 103, height / 2 - 7, 179, col2);
+            graphics.fill(width / 2 + 100, boxHeight, width / 2 + 280, boxHeight + textHeight + 10, col3);
+            graphics.outline(width / 2 + 100, boxHeight, 180, textHeight + 10, col2);
+            graphics.textWithWordWrap(this.font, text, width / 2 + 103, height / 2 - 7, 179, col2);
         }
         if (test2Time >= 0) {
             int col4 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, PROMPT_DURATION, FADE_IN, FADE_OUT), test2Time);
             int col5 = fadeManager.fadeInOut(new Fade(0xFF000000, PROMPT_DURATION, FADE_IN, FADE_OUT), test2Time);
             widgetGraphics.arrow(graphics, width / 2 - 120, height / 2 + 40, clearX + 9, rowY + 17, 1, 5, col4);
-            graphics.fill(width / 2 - 180, height / 2 + 40, width / 2, height / 2 + 80, col5);
-            graphics.outline(width / 2 - 180, height / 2 + 40, 180, 40, col4);
-            graphics.textWithWordWrap(this.font, Component.translatable("itemblocker.tutorial.clear_all"), width / 2 - 177, height / 2 + 43, 179, col4);
+            Component text = Component.translatable("itemblocker.tutorial.clear_all");
+            int textHeight = font.wordWrapHeight(text, 179);
+            int boxHeight = height / 2 + 40;
+            graphics.fill(width / 2 - 180, boxHeight, width / 2, boxHeight + textHeight + 10, col5);
+            graphics.outline(width / 2 - 180, boxHeight, 180, textHeight + 10, col4);
+            graphics.textWithWordWrap(this.font, text, width / 2 - 177, height / 2 + 43, 179, col4);
             if (test3Time < 0) {
                 widgetGraphics.animatedButton(graphics, Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/bin.png"), clearX, rowY, 0.5f, false, true, Component.empty());
             }
@@ -243,31 +252,40 @@ public class BlockedItemsScreen extends AbstractItemWidget {
             int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, PROMPT_DURATION, FADE_IN, FADE_OUT), test3Time);
             int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, PROMPT_DURATION, FADE_IN, FADE_OUT), test3Time);
             widgetGraphics.arrow(graphics, width / 2, height / 2 + 40, optionsX + 9, rowY + 17, 1, 5, col6);
-            graphics.fill(width / 2 - 50, height / 2 + 40, width / 2 + 130, height / 2 + 80, col7);
             if (test4Time < 0) {
                 widgetGraphics.animatedButton(graphics, Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/settings.png"), optionsX, rowY, 0.5f, false, true, Component.empty());
             }
-            graphics.outline(width / 2 - 50, height / 2 + 40, 180, 40, col6);
-            graphics.textWithWordWrap(this.font, Component.translatable("itemblocker.tutorial.options"), width / 2 - 47, height / 2 + 43, 180, col6);
+            Component text = Component.translatable("itemblocker.tutorial.options");
+            int textHeight = font.wordWrapHeight(text, 180);
+            int boxHeight = height / 2 + 40;
+            graphics.fill(width / 2 - 50, boxHeight, width / 2 + 130, boxHeight + textHeight + 10, col7);
+            graphics.outline(width / 2 - 50, boxHeight, 180, textHeight + 10, col6);
+            graphics.textWithWordWrap(this.font, text, width / 2 - 47, height / 2 + 43, 180, col6);
         }
         if (test4Time >= 0) {
             int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, 6f, FADE_IN, FADE_OUT), test4Time);
             int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, 6f, FADE_IN, FADE_OUT), test4Time);
             widgetGraphics.arrow(graphics, width / 2 + 80, height / 2 + 20, presetsX + 9, rowY + 17, 1, 5, col6);
-            graphics.fill(width / 2 + 30, height / 2 + 20, width / 2 + 230, height / 2 + 85, col7);
             if (test5Time < 0) {
                 widgetGraphics.animatedButton(graphics, Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/presets.png"), presetsX, rowY, 0.3f, false, true, Component.empty());
             }
-            graphics.outline(width / 2 + 30, height / 2 + 20, 200, 65, col6);
-            graphics.textWithWordWrap(this.font, Component.translatable("itemblocker.tutorial.presets"), width / 2 + 33, height / 2 + 23, 190, col6);
+            Component text = Component.translatable("itemblocker.tutorial.presets");
+            int textHeight = font.wordWrapHeight(text, 190);
+            int boxHeight = height / 2 + 20;
+            graphics.fill(width / 2 + 30, boxHeight, width / 2 + 230, boxHeight + textHeight + 10, col7);
+            graphics.outline(width / 2 + 30, boxHeight, 200, textHeight + 10, col6);
+            graphics.textWithWordWrap(this.font, text, width / 2 + 33, height / 2 + 23, 190, col6);
         }
         if (test5Time >= 0) {
             int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, 7.5f, FADE_IN, FADE_OUT), test5Time);
             int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, 7.5f, FADE_IN, FADE_OUT), test5Time);
             widgetGraphics.arrow(graphics, width / 2 - 134, this.getListY() + (this.getListHeight() / 2), this.getListX(), this.getListY() + (this.getListHeight() / 2), 1, 5, col6);
-            graphics.fill(width / 2 - 310, this.getListY() + (this.getListHeight() / 2) - 30, width / 2 - 134, this.getListY() + (this.getListHeight() / 2) + 30, col7);
-            graphics.outline(width / 2 - 310, this.getListY() + (this.getListHeight() / 2) - 30, 176, 60, col6);
-            graphics.textWithWordWrap(this.font, Component.translatable("itemblocker.tutorial.blocked_items"), width / 2 - 307, this.getListY() + (this.getListHeight() / 2) - 27, 170, col6);
+            Component text = Component.translatable("itemblocker.tutorial.blocked_items");
+            int textHeight = font.wordWrapHeight(text, 170);
+            int boxHeight = this.getListY() + (this.getListHeight() / 2) - 30;
+            graphics.fill(width / 2 - 310, boxHeight, width / 2 - 134, boxHeight + textHeight + 10, col7);
+            graphics.outline(width / 2 - 310, boxHeight, 176, textHeight + 10, col6);
+            graphics.textWithWordWrap(this.font, text, width / 2 - 307, this.getListY() + (this.getListHeight() / 2) - 27, 170, col6);
             if (test6Time < 0) {
                 this.renderWidget(graphics, mouseX, mouseY);
             }
@@ -277,9 +295,17 @@ public class BlockedItemsScreen extends AbstractItemWidget {
             int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, 5f, FADE_IN, FADE_OUT), test6Time);
             int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, 5f, FADE_IN, FADE_OUT), test6Time);
             widgetGraphics.arrow(graphics, width / 2 - 30, height / 2 + 5, this.tutorialButton.getX() + this.tutorialButton.getWidth(), this.tutorialButton.getY(), 1, 5, col6);
-            graphics.fill(width / 2 - 90, height / 2 + 5, width / 2 + 60, height / 2 - 35, col7);
-            graphics.outline(width / 2 - 90, height / 2 - 35, 150, 40, col6);
-            graphics.textWithWordWrap(this.font, Component.translatable("itemblocker.tutorial.tutorial"), width / 2 - 87, height / 2 - 32, 150, col6);
+            Component text = Component.translatable("itemblocker.tutorial.tutorial");
+            int textHeight = font.wordWrapHeight(text, 150);
+            int boxHeight = height / 2 + 5;
+            /*
+            For some reason, this part acts very weird, the coordinates don't act like
+            the other ones from previous tutorial steps, and so it's very confusing,
+            if anyone looking at this knows why let me know.
+            */
+            graphics.fill(width / 2 - 90, boxHeight, width / 2 + 60, boxHeight - textHeight - 10, col7);
+            graphics.outline(width / 2 - 90, boxHeight - 40, 150, textHeight + 10, col6);
+            graphics.textWithWordWrap(this.font, text, width / 2 - 87, height / 2 - 32, 150, col6);
             graphics.outline(this.tutorialButton.getX(), this.tutorialButton.getY(), this.tutorialButton.getWidth(), this.tutorialButton.getHeight(), col6);
         }
     }
