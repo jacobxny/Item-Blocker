@@ -1,12 +1,13 @@
 package com.itemblocker.client.screen.presets;
 
 import com.itemblocker.api.PresetSharing;
-import com.itemblocker.api.screen.misc.Colors;
+import com.itemblocker.api.screen.util.Colors;
 import com.itemblocker.api.screen.GlobalScreen;
 import com.itemblocker.client.config.PresetsConfig;
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.client.screen.presets.edit.EditPresetScreen;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -19,6 +20,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PresetsScreen extends GlobalScreen {
+
+    private static final int SCREEN_MARGIN = 5;
+
+    private static final int TOP_BTN_PAD = 16;
+    private static final int TOP_BTN_GAP = 5;
+
+    private static final int LIST_TOP = 60;
+    private static final int ROW_H = 30;
+    private static final int BTN_H = 20;
+    private static final int LIST_MIN_W = 320;
+    private static final int LIST_NAME_PAD_LEFT = 10;
+    private static final int LIST_PAD_RIGHT = 11;
+    private static final int LIST_MIN_NAME_AREA = 150;
+    private static final int ROW_BTN_GAP = 5;
+    private static final int ROW_BTN_PAD = 4;
+
+    private static final int POPUP_MIN_W = 320;
+    private static final int POPUP_PADDING = 16;
+    private static final int POPUP_BTN_PAD = 14;
+    private static final int POPUP_MIN_BTN_W = 70;
+    private static final int POPUP_BTN_GAP = 20;
+    private static final int NAME_CAP_W = 150;
+    private static final int EXPORT_POPUP_H = 120;
+    private static final int DELETE_POPUP_H = 98;
+
     private List<PresetEntry> presetsList;
     private int scrollOffset = 0;
     private boolean isShiftDown = false;
@@ -28,43 +54,194 @@ public class PresetsScreen extends GlobalScreen {
     private String exportPresetName = "";
 
     private boolean showingDeletePopup = false;
-    private String deletePresetName = "";
     private String fullPresetName = "";
 
     public PresetsScreen(Screen parent) {
         super(Component.translatable("itemblocker.text.manage_presets"), parent);
     }
 
+    private static boolean inside(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
+    }
+
+    private String fitText(String text, int maxWidth) {
+        if (this.font.width(text) <= maxWidth) {
+            return text;
+        }
+        String ellipsis = "...";
+        int ellipsisW = this.font.width(ellipsis);
+        if (maxWidth <= ellipsisW) {
+            return "";
+        }
+        String result = text;
+        while (!result.isEmpty() && this.font.width(result) + ellipsisW > maxWidth) {
+            result = result.substring(0, result.length() - 1);
+        }
+        if (!result.isEmpty() && Character.isHighSurrogate(result.charAt(result.length() - 1))) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result + ellipsis;
+    }
+
+    private String fitText(Component text, int maxWidth) {
+        return fitText(text.getString(), maxWidth);
+    }
+
+    private void drawButton(GuiGraphicsExtractor graphics, int x, int y, int w, Component label, int fillColor) {
+        graphics.fill(x, y, x + w, y + BTN_H, fillColor);
+        graphics.centeredText(this.font, label, x + w / 2, y + 6, Colors.WHITE);
+    }
+
+    private record ButtonPair(int firstX, int firstW, int secondX, int secondW, int totalW) {}
+
+    private ButtonPair layoutButtonPair(Component first, Component second) {
+        int w1 = Math.max(POPUP_MIN_BTN_W, this.font.width(first) + POPUP_BTN_PAD);
+        int w2 = Math.max(POPUP_MIN_BTN_W, this.font.width(second) + POPUP_BTN_PAD);
+        int total = w1 + POPUP_BTN_GAP + w2;
+        int startX = this.width / 2 - total / 2;
+        return new ButtonPair(startX, w1, startX + w1 + POPUP_BTN_GAP, w2, total);
+    }
+
+
+    private record ListLayout(int left, int width,
+                              int nameX, int nameMaxW,
+                              int applyX, int applyW, Component applyText,
+                              int exportX, int exportW, Component exportText,
+                              int editX, int editW, Component editText,
+                              int deleteX, int deleteW, Component deleteText) {}
+
+    private ListLayout computeListLayout() {
+        Component applyText = Component.translatable("itemblocker.text.apply");
+        Component exportText = Component.translatable("itemblocker.text.export");
+        Component editText = Component.translatable("itemblocker.text.edit");
+        Component deleteText = Component.literal("🗑");
+
+        int applyW = Math.max(38, this.font.width(applyText) + ROW_BTN_PAD);
+        int exportW = Math.max(38, this.font.width(exportText) + ROW_BTN_PAD);
+        int editW = Math.max(30, this.font.width(editText) + ROW_BTN_PAD);
+        int deleteW = Math.max(28, this.font.width(deleteText) + ROW_BTN_PAD);
+        int buttonsW = applyW + exportW + editW + deleteW + ROW_BTN_GAP * 3;
+
+        int listW = Math.max(LIST_MIN_W, LIST_NAME_PAD_LEFT + LIST_MIN_NAME_AREA + ROW_BTN_GAP + buttonsW - ROW_BTN_GAP + LIST_PAD_RIGHT);
+        listW = Math.min(listW, this.width - SCREEN_MARGIN * 2);
+
+        int left = this.width / 2 - listW / 2 + 5;
+        left = Math.clamp(left, SCREEN_MARGIN, this.width - listW - SCREEN_MARGIN);
+        int right = left + listW;
+
+        int deleteX = right - LIST_PAD_RIGHT - deleteW;
+        int editX = deleteX - ROW_BTN_GAP - editW;
+        int exportX = editX - ROW_BTN_GAP - exportW;
+        int applyX = exportX - ROW_BTN_GAP - applyW;
+
+        int nameX = left + LIST_NAME_PAD_LEFT;
+        int nameMaxW = Math.max(0, applyX - ROW_BTN_GAP - nameX);
+
+        return new ListLayout(left, listW, nameX, nameMaxW,
+                applyX, applyW, applyText,
+                exportX, exportW, exportText,
+                editX, editW, editText,
+                deleteX, deleteW, deleteText);
+    }
+
+
+    private record ExportPopupLayout(int x, int y, int w, int h,
+                                     ButtonPair buttons, int buttonY,
+                                     String title, String copyKey, String share, String info,
+                                     Component copyText, Component closeText) {}
+
+    private ExportPopupLayout computeExportPopupLayout() {
+        int maxContentW = Math.max(0, this.width - SCREEN_MARGIN * 2 - POPUP_PADDING * 2);
+
+        String shownName = fitText(exportPresetName, NAME_CAP_W);
+        String title = fitText(Component.translatable("itemblocker.text.export_preset", shownName), maxContentW);
+        String copyKey = fitText(Component.translatable("itemblocker.text.press_copy_key"), maxContentW);
+        String share = fitText(Component.translatable("itemblocker.text.share_code"), maxContentW);
+        String info = fitText(Component.translatable("itemblocker.text.other_player_info"), maxContentW);
+        Component copyText = Component.translatable("itemblocker.text.copy");
+        Component closeText = Component.translatable("itemblocker.text.close");
+
+        ButtonPair buttons = layoutButtonPair(copyText, closeText);
+
+        int contentW = Math.max(
+                Math.max(this.font.width(title), this.font.width(copyKey)),
+                Math.max(this.font.width(share), this.font.width(info)));
+        contentW = Math.max(contentW, buttons.totalW());
+
+        int w = Math.clamp(contentW + POPUP_PADDING * 2, POPUP_MIN_W, this.width - SCREEN_MARGIN * 2);
+        int h = EXPORT_POPUP_H;
+        int x = this.width / 2 - w / 2;
+        int y = this.height / 2 - h / 2;
+
+        return new ExportPopupLayout(x, y, w, h, buttons, y + 62, title, copyKey, share, info, copyText, closeText);
+    }
+
+
+    private record DeletePopupLayout(int x, int y, int w, int h,
+                                     ButtonPair buttons, int buttonY,
+                                     String title, String warning, String hint,
+                                     Component confirmText, Component closeText) {}
+
+    private DeletePopupLayout computeDeletePopupLayout() {
+        int maxContentW = Math.max(0, this.width - SCREEN_MARGIN * 2 - POPUP_PADDING * 2);
+
+        String title = fitText(Component.translatable("itemblocker.text.confirm_delete", fullPresetName), maxContentW);
+        String warning = fitText(Component.translatable("itemblocker.text.permanently_remove"), maxContentW);
+        String hint = fitText(Component.translatable("itemblocker.text.shift_click"), maxContentW);
+        Component confirmText = Component.translatable("itemblocker.text.confirm");
+        Component closeText = Component.translatable("itemblocker.text.close");
+
+        ButtonPair buttons = layoutButtonPair(confirmText, closeText);
+
+        int contentW = Math.max(
+                Math.max(this.font.width(title), this.font.width(warning)),
+                Math.max(this.font.width(hint), buttons.totalW()));
+
+        int w = Math.clamp(contentW + POPUP_PADDING * 2, POPUP_MIN_W, this.width - SCREEN_MARGIN * 2);
+        int x = this.width / 2 - w / 2;
+        int y = this.height / 2 - (DELETE_POPUP_H + 20) / 2;
+
+        return new DeletePopupLayout(x, y, w, DELETE_POPUP_H, buttons, y + 60, title, warning, hint, confirmText, closeText);
+    }
+
+
     @Override
     protected void init() {
 
         PresetsConfig.load();
 
-        Button createButton = Button.builder(Component.translatable("itemblocker.text.create_preset"), button -> {
+        Component createText = Component.translatable("itemblocker.text.create_preset");
+        Component importText = Component.translatable("itemblocker.text.import_preset");
+        Component backText = Component.translatable("gui.back");
+
+        int createW = Math.max(105, this.font.width(createText) + TOP_BTN_PAD);
+        int importW = Math.max(100, this.font.width(importText) + TOP_BTN_PAD);
+        int topStartX = this.width / 2 - (createW + TOP_BTN_GAP + importW) / 2;
+
+        Button createButton = Button.builder(createText, button -> {
                     this.minecraft.gui.setScreen(new CreatePresetScreen(this));
                 })
-                .createNarration(narration -> Component.literal("Create New Preset"))
-                .bounds(this.width / 2 - 105, 30, 105, 20)
+                .createNarration(narration -> Component.translatable("itemblocker.text.create_preset"))
+                .bounds(topStartX, 30, createW, 20)
                 .build();
         this.addRenderableWidget(createButton);
 
-
-        Button importButton = Button.builder(Component.translatable("itemblocker.text.import_preset"), button -> {
+        Button importButton = Button.builder(importText, button -> {
                     this.minecraft.gui.setScreen(new ImportPresetScreen(this));
                 })
-                .createNarration(narration -> Component.literal("Import Presett"))
-                .bounds(this.width / 2 + 5, 30, 100, 20)
+                .createNarration(narration -> Component.translatable("itemblocker.text.import_preset"))
+                .bounds(topStartX + createW + TOP_BTN_GAP, 30, importW, 20)
                 .build();
         this.addRenderableWidget(importButton);
 
-        Button backButton = Button.builder(Component.translatable("gui.back"), button -> {
+        int backW = Math.max(200, this.font.width(backText) + TOP_BTN_PAD);
+        Button backButton = Button.builder(backText, button -> {
                     this.onClose();
                 })
-                .createNarration(narration -> Component.literal("Back"))
-                .bounds(this.width / 2 - 100, this.height - 30, 200, 20)
+                .createNarration(narration -> Component.translatable("gui.back"))
+                .bounds(this.width / 2 - backW / 2, this.height - 30, backW, 20)
                 .build();
         this.addRenderableWidget(backButton);
-
 
         this.refreshList();
     }
@@ -77,20 +254,19 @@ public class PresetsScreen extends GlobalScreen {
     }
 
 
-
     @Override
     public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         isShiftDown = minecraft.hasShiftDown();
 
-        int listY = 60;
+        int listY = LIST_TOP;
         int listHeight = this.height - 100;
+        ListLayout l = computeListLayout();
 
-        graphics.text(this.font, Component.translatable("itemblocker.text.your_presets"), this.width / 2 - 150, listY - 9, Colors.WHITE, false);
+        graphics.text(this.font, Component.translatable("itemblocker.text.your_presets"), l.left() + 5, listY - 9, Colors.WHITE, false);
 
-
-        graphics.fill(this.width / 2 - 155, listY, this.width / 2 + 165, listY + listHeight, 0x80000000);
+        graphics.fill(l.left(), listY, l.left() + l.width(), listY + listHeight, 0x80000000);
 
         if (presetsList.isEmpty()) {
             graphics.centeredText(
@@ -101,9 +277,8 @@ public class PresetsScreen extends GlobalScreen {
                     0xFF888888
             );
         } else {
-            this.renderButtons(graphics, listY, listHeight, mouseX, mouseY);
+            this.renderButtons(graphics, l, listY, listHeight, mouseX, mouseY);
         }
-
 
         if (showingExportPopup) {
             this.renderExportPopup(graphics, mouseX, mouseY);
@@ -114,208 +289,128 @@ public class PresetsScreen extends GlobalScreen {
         }
     }
 
-    private void renderButtons(GuiGraphicsExtractor graphics, int listY, int listHeight, int mouseX, int mouseY) {
+    private void renderButtons(GuiGraphicsExtractor graphics, ListLayout l, int listY, int listHeight, int mouseX, int mouseY) {
         int yOffset = listY + 5;
-        int itemsPerPage = (listHeight - 10) / 30;
+        int itemsPerPage = (listHeight - 10) / ROW_H;
+        boolean blocked = showingDeletePopup || showingExportPopup;
 
         for (int i = scrollOffset; i < presetsList.size() && i < scrollOffset + itemsPerPage; i++) {
             PresetEntry entry = presetsList.get(i);
 
-            String presetName = entry.name;
-            int length = presetName.length();
-            if (length > 23) {
-                presetName = presetName.substring(0, 23);
-                presetName += "...";
-            }
-            graphics.text(this.font, presetName, this.width / 2 - 145, yOffset + 2, Colors.WHITE, false);
-
+            graphics.text(this.font, fitText(entry.name, l.nameMaxW()), l.nameX(), yOffset + 2, Colors.WHITE, false);
 
             int itemCount = PresetsConfig.getPreset(entry.name).size();
-            int textX = this.width / 2 - 145;
-            int textY = yOffset + 14;
+            String countText = fitText(Component.translatable("itemblocker.text.item_count", itemCount), l.nameMaxW());
+            graphics.text(this.font, countText, l.nameX(), yOffset + 14, 0xFFAAAAAA, false);
 
+            boolean applyHovered = !blocked && inside(mouseX, mouseY, l.applyX(), yOffset, l.applyW(), BTN_H);
+            drawButton(graphics, l.applyX(), yOffset, l.applyW(), l.applyText(),
+                    applyHovered ? Colors.GREEN.color(false) : Colors.GREEN.color(true));
 
-            graphics.text(this.font,
-                    Component.translatable("itemblocker.text.item_count", itemCount),
-                    textX, textY,
-                    0xFFAAAAAA,
-                    false);
+            boolean exportHovered = !blocked && inside(mouseX, mouseY, l.exportX(), yOffset, l.exportW(), BTN_H);
+            drawButton(graphics, l.exportX(), yOffset, l.exportW(), l.exportText(),
+                    exportHovered ? Colors.ORANGE.color(false) : Colors.ORANGE.color(true));
 
-            int applyX = this.width / 2 + 5;
-            boolean applyHovered = mouseX >= applyX && mouseX <= applyX + 38 &&
-                    mouseY >= yOffset && mouseY <= yOffset + 20;
-            if (showingDeletePopup || showingExportPopup) {
-                applyHovered = false;
+            boolean editHovered = !blocked && inside(mouseX, mouseY, l.editX(), yOffset, l.editW(), BTN_H);
+            drawButton(graphics, l.editX(), yOffset, l.editW(), l.editText(),
+                    editHovered ? Colors.BLUE.color(false) : Colors.BLUE.color(true));
+
+            boolean deleteHovered = !blocked && inside(mouseX, mouseY, l.deleteX(), yOffset, l.deleteW(), BTN_H);
+            drawButton(graphics, l.deleteX(), yOffset, l.deleteW(), l.deleteText(),
+                    deleteHovered ? Colors.RED.color(false) : Colors.RED.color(true));
+
+            yOffset += ROW_H;
+            if (applyHovered || exportHovered || editHovered || deleteHovered) {
+                graphics.requestCursor(CursorTypes.POINTING_HAND);
             }
-            graphics.fill(applyX, yOffset, applyX + 38, yOffset + 20, applyHovered ? Colors.GREEN.color(false) : Colors.GREEN.color(true));
-            graphics.centeredText(this.font, Component.translatable("itemblocker.text.apply"), applyX + 19, yOffset + 6, Colors.WHITE);
-
-
-            int exportX = this.width / 2 + 48;
-            boolean exportHovered = mouseX >= exportX && mouseX <= exportX + 38 &&
-                    mouseY >= yOffset && mouseY <= yOffset + 20;
-            if (showingDeletePopup || showingExportPopup) {
-                exportHovered = false;
-            }
-            graphics.fill(exportX, yOffset, exportX + 38, yOffset + 20, exportHovered ? Colors.ORANGE.color(false) : Colors.ORANGE.color(true));
-            graphics.centeredText(this.font, Component.translatable("itemblocker.text.export"), exportX + 19, yOffset + 6, Colors.WHITE);
-
-            int editX = this.width / 2 + 91;
-            boolean editHovered = mouseX >= editX && mouseX <= editX + 30 &&
-                    mouseY >= yOffset && mouseY <= yOffset + 20;
-
-            if (showingDeletePopup || showingExportPopup) {
-                editHovered = false;
-            }
-            graphics.fill(editX, yOffset, editX + 30, yOffset + 20, editHovered ? Colors.BLUE.color(false) : Colors.BLUE.color(true));
-            graphics.centeredText(this.font, Component.translatable("itemblocker.text.edit"), editX + 15, yOffset + 6, Colors.WHITE);
-
-
-            int deleteX = this.width / 2 + 126;
-            boolean deleteHovered = mouseX >= deleteX && mouseX <= deleteX + 28 &&
-                    mouseY >= yOffset && mouseY <= yOffset + 20;
-            if (showingDeletePopup || showingExportPopup) {
-                deleteHovered = false;
-            }
-            graphics.fill(deleteX, yOffset, deleteX + 28, yOffset + 20, deleteHovered ? Colors.RED.color(false) : Colors.RED.color(true));
-            graphics.centeredText(this.font, "🗑", deleteX + 14, yOffset + 6, Colors.WHITE);
-
-            yOffset += 30;
         }
     }
 
     private void renderExportPopup(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        int popupW = 320;
-        int popupH = 120;
-        int popupX = this.width / 2 - popupW / 2;
-        int popupY = this.height / 2 - popupH / 2;
+        ExportPopupLayout l = computeExportPopupLayout();
+        ButtonPair b = l.buttons();
 
         graphics.fill(0, 0, this.width, this.height, 0x88000000);
 
+        graphics.fill(l.x(), l.y(), l.x() + l.w(), l.y() + l.h(), 0xFF222222);
+        graphics.outline(l.x(), l.y(), l.w(), l.h(), 0xFFFFFFFF);
 
-        graphics.fill(popupX, popupY, popupX + popupW, popupY + popupH, 0xFF222222);
+        graphics.centeredText(this.font, l.title(), this.width / 2, l.y() + 8, 0xFFFFAA00);
+        graphics.centeredText(this.font, l.copyKey(), this.width / 2, l.y() + 22, 0xFFAAAAAA);
 
-        graphics.outline(popupX, popupY, popupW, popupH, 0xFFFFFFFF);
+        graphics.fill(l.x() + 8, l.y() + 33, l.x() + l.w() - 8, l.y() + 55, 0xFF111111);
 
+        String displayCode = fitText(exportCode, l.w() - 24);
+        graphics.text(this.font, displayCode, l.x() + 12, l.y() + 40, 0xFF55FF55, false);
 
-        graphics.centeredText(this.font,
-                Component.translatable("itemblocker.text.export_preset", exportPresetName), this.width / 2, popupY + 8, 0xFFFFAA00);
+        boolean copyHovered = inside(mouseX, mouseY, b.firstX(), l.buttonY(), b.firstW(), BTN_H);
+        drawButton(graphics, b.firstX(), l.buttonY(), b.firstW(), l.copyText(),
+                copyHovered ? Colors.ORANGE.color(false) : Colors.ORANGE.color(true));
 
+        boolean closeHovered = inside(mouseX, mouseY, b.secondX(), l.buttonY(), b.secondW(), BTN_H);
+        drawButton(graphics, b.secondX(), l.buttonY(), b.secondW(), l.closeText(),
+                closeHovered ? Colors.RED.color(false) : Colors.RED.color(true));
 
-        graphics.centeredText(this.font,
-                Component.translatable("itemblocker.text.press_copy_key"), this.width / 2, popupY + 22, 0xFFAAAAAA);
+        graphics.centeredText(this.font, l.share(), this.width / 2, l.y() + 90, 0xFF888888);
+        graphics.centeredText(this.font, l.info(), this.width / 2, l.y() + 102, 0xFF888888);
 
-
-        graphics.fill(popupX + 8, popupY + 33, popupX + popupW - 8, popupY + 55, 0xFF111111);
-
-
-        String displayCode = exportCode;
-        int maxCodeWidth = popupW - 24;
-        if (this.font.width(displayCode) > maxCodeWidth) {
-            while (this.font.width(displayCode + "...") > maxCodeWidth && !displayCode.isEmpty()) {
-                displayCode = displayCode.substring(0, displayCode.length() - 1);
-            }
-            displayCode += "...";
+        if (closeHovered || copyHovered) {
+            graphics.requestCursor(CursorTypes.POINTING_HAND);
         }
-        graphics.text(this.font, displayCode, popupX + 12, popupY + 40, 0xFF55FF55, false);
-
-
-        int copyX = this.width / 2 - 80;
-        int copyY = popupY + 62;
-        boolean copyHovered = mouseX >= copyX && mouseX <= copyX + 70 &&
-                mouseY >= copyY && mouseY <= copyY + 20;
-        graphics.fill(copyX, copyY, copyX + 70, copyY + 20, copyHovered ? Colors.ORANGE.color(false) : Colors.ORANGE.color(true));
-        graphics.centeredText(this.font, Component.translatable("itemblocker.text.copy"), copyX + 35, copyY + 6, Colors.WHITE);
-
-        int closeX = this.width / 2 + 10;
-        int closeY = popupY + 62;
-        boolean closeHovered = mouseX >= closeX && mouseX <= closeX + 70 &&
-                mouseY >= closeY && mouseY <= closeY + 20;
-        graphics.fill(closeX, closeY, closeX + 70, closeY + 20, closeHovered ? Colors.RED.color(false) : Colors.RED.color(true));
-        graphics.centeredText(this.font, Component.translatable("itemblocker.text.close"), closeX + 35, closeY + 6, Colors.WHITE);
-
-        graphics.centeredText(this.font,
-                Component.translatable("itemblocker.text.share_code"), this.width / 2, popupY + 90, 0xFF888888);
-        graphics.centeredText(this.font,
-                Component.translatable("itemblocker.text.other_player_info"), this.width / 2, popupY + 102, 0xFF888888);
     }
 
-
     private void renderDeletePopup(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        int popupW = 320;
-        int popupH = 118;
-        int popupX = this.width / 2 - popupW / 2;
-        int popupY = this.height / 2 - popupH / 2;
+        DeletePopupLayout l = computeDeletePopupLayout();
+        ButtonPair b = l.buttons();
 
         graphics.fill(0, 0, this.width, this.height, 0x88000000);
 
-        graphics.fill(popupX, popupY, popupX + popupW, (popupY + popupH) - 20, 0xFF222222);
-        graphics.outline(popupX, popupY, popupW, popupH - 20, 0xFFFFFFFF);
+        graphics.fill(l.x(), l.y(), l.x() + l.w(), l.y() + l.h(), 0xFF222222);
+        graphics.outline(l.x(), l.y(), l.w(), l.h(), 0xFFFFFFFF);
 
+        graphics.centeredText(this.font, l.title(), this.width / 2, l.y() + 8, 0xFFFFAA00);
+        graphics.centeredText(this.font, l.warning(), this.width / 2, l.y() + 22, 0xFFAAAAAA);
+        graphics.centeredText(this.font, l.hint(), this.width / 2, l.y() + 39, 0xFF888888);
 
-        int length = deletePresetName.length();
+        boolean confirmHovered = inside(mouseX, mouseY, b.firstX(), l.buttonY(), b.firstW(), BTN_H);
+        drawButton(graphics, b.firstX(), l.buttonY(), b.firstW(), l.confirmText(),
+                confirmHovered ? Colors.GREEN.color(false) : Colors.GREEN.color(true));
 
-        if (length > 22) {
-            deletePresetName = deletePresetName.substring(0, 22);
-            deletePresetName += "...";
+        boolean closeHovered = inside(mouseX, mouseY, b.secondX(), l.buttonY(), b.secondW(), BTN_H);
+        drawButton(graphics, b.secondX(), l.buttonY(), b.secondW(), l.closeText(),
+                closeHovered ? Colors.RED.color(false) : Colors.RED.color(true));
+
+        if (closeHovered || confirmHovered) {
+            graphics.requestCursor(CursorTypes.POINTING_HAND);
         }
-        graphics.centeredText(this.font,
-                Component.literal("Are you sure you want to delete: " + deletePresetName + "?"), this.width / 2, popupY + 8, 0xFFFFAA00);
-
-
-        graphics.centeredText(this.font,
-                Component.literal("This will permanently remove the preset and its contents!"), this.width / 2, popupY + 22, 0xFFAAAAAA);
-
-
-        graphics.text(this.font, "You can hold Shift + Click to skip this popup.", popupX + 46, popupY + 39,  0xFF888888);
-
-        int confirmX = this.width / 2 - 80;
-        int confirmY = popupY + 60;
-        boolean confirmHovered = mouseX >= confirmX && mouseX <= confirmX + 70 &&
-                mouseY >= confirmY && mouseY <= confirmY + 20;
-        graphics.fill(confirmX, confirmY,  confirmX + 70, confirmY + 20, confirmHovered ? Colors.GREEN.color(false) : Colors.GREEN.color(true));
-        graphics.centeredText(this.font, Component.literal("Confirm"), confirmX + 35,  confirmY+ 6, Colors.WHITE);
-
-        int closeX = this.width / 2 + 10;
-        int closeY = popupY + 60;
-        boolean closeHovered = mouseX >= closeX && mouseX <= closeX + 70 &&
-                mouseY >= closeY && mouseY <= closeY + 20;
-        graphics.fill(closeX, closeY, closeX + 70, closeY + 20, closeHovered ?  Colors.RED.color(false) : Colors.RED.color(true) );
-        graphics.centeredText(this.font, Component.translatable("itemblocker.text.close"), closeX + 35, closeY + 6, Colors.WHITE);
     }
 
     @Override
     public boolean mouseClicked(@NonNull MouseButtonEvent click, boolean doubleClick) {
+        double mx = click.x();
+        double my = click.y();
+
         if (showingExportPopup) {
             if (click.input() != InputConstants.MOUSE_BUTTON_LEFT) {
                 return false;
             }
-            int popupW = 320;
-            int popupH = 120;
-            int popupX = this.width / 2 - popupW / 2;
-            int popupY = this.height / 2 - popupH / 2;
+            ExportPopupLayout l = computeExportPopupLayout();
+            ButtonPair b = l.buttons();
 
-
-            int copyX = this.width / 2 - 80;
-            int copyY = popupY + 62;
-            if (click.x() >= copyX && click.x() <= copyX + 70 &&
-                    click.y() >= copyY && click.y() <= copyY + 20) {
+            if (inside(mx, my, b.firstX(), l.buttonY(), b.firstW(), BTN_H)) {
                 this.playClickSound();
-                this.addToast(Component.literal("Copied to clipboard!"), Component.literal("Copied export code to clipboard!"));
+                this.addToast(Component.translatable("itemblocker.text.copied"), Component.translatable("itemblocker.text.copied_code"));
                 showingExportPopup = false;
                 this.minecraft.keyboardHandler.setClipboard(exportCode);
                 Loggers.PRESETS_LOGGER.info("Copied preset code to clipboard");
             }
 
-            int closeX = this.width / 2 + 10;
-            int closeY = popupY + 62;
-            if (click.x() >= closeX && click.x() <= closeX + 70 &&
-                    click.y() >= closeY && click.y() <= closeY + 20) {
+            if (inside(mx, my, b.secondX(), l.buttonY(), b.secondW(), BTN_H)) {
                 this.playClickSound();
                 showingExportPopup = false;
             }
 
-            if (click.x() < popupX || click.x() > popupX + popupW || click.y() < popupY || click.y() > popupY + popupH) {
+            if (!inside(mx, my, l.x(), l.y(), l.w(), l.h())) {
                 showingExportPopup = false;
             }
         }
@@ -324,68 +419,52 @@ public class PresetsScreen extends GlobalScreen {
             if (click.input() != InputConstants.MOUSE_BUTTON_LEFT) {
                 return false;
             }
-            int popupW = 320;
-            int popupH = 120;
-            int popupX = this.width / 2 - popupW / 2;
-            int popupY = this.height / 2 - popupH / 2;
+            DeletePopupLayout l = computeDeletePopupLayout();
+            ButtonPair b = l.buttons();
 
-
-            int confirmX = this.width / 2 - 80;
-            int confirmY = popupY + 62;
-            if (click.x() >= confirmX && click.x() <= confirmX + 70 &&
-                    click.y() >= confirmY && click.y() <= confirmY + 20) {
+            if (inside(mx, my, b.firstX(), l.buttonY(), b.firstW(), BTN_H)) {
                 this.playClickSound();
                 PresetsConfig.deletePreset(fullPresetName);
-                Loggers.PRESETS_LOGGER.info("Deleted preset: {}" ,fullPresetName);
+                Loggers.PRESETS_LOGGER.info("Deleted preset: {}", fullPresetName);
                 showingDeletePopup = false;
                 this.refreshList();
-                Loggers.PRESETS_LOGGER.info("Copied preset code to clipboard");
             }
 
-            int closeX = this.width / 2 + 10;
-            int closeY = popupY + 62;
-            if (click.x() >= closeX && click.x() <= closeX + 70 &&
-                    click.y() >= closeY && click.y() <= closeY + 20) {
+            if (inside(mx, my, b.secondX(), l.buttonY(), b.secondW(), BTN_H)) {
                 this.playClickSound();
                 showingDeletePopup = false;
             }
 
-            if (click.x() < popupX || click.x() > popupX + popupW || click.y() < popupY || click.y() > popupY + popupH) {
+            if (!inside(mx, my, l.x(), l.y(), l.w(), l.h())) {
                 showingDeletePopup = false;
             }
         }
 
         else {
-            int listY = 60;
             int listHeight = this.height - 100;
-            int yOffset = listY + 5;
-            int itemsPerPage = (listHeight - 10) / 30;
+            int yOffset = LIST_TOP + 5;
+            int itemsPerPage = (listHeight - 10) / ROW_H;
+            ListLayout l = computeListLayout();
 
             for (int i = scrollOffset; i < presetsList.size() && i < scrollOffset + itemsPerPage; i++) {
                 PresetEntry entry = presetsList.get(i);
 
-
-                int applyX = this.width / 2 + 5;
-                if (click.x() >= applyX && click.x() <= applyX + 38 &&
-                        click.y() >= yOffset && click.y() <= yOffset + 20) {
+                if (inside(mx, my, l.applyX(), yOffset, l.applyW(), BTN_H)) {
                     String toastTest;
                     if (isShiftDown) {
                         PresetsConfig.applyPreset(entry.name, false);
-                        toastTest = "Applied preset without clearing list!";
+                        toastTest = "itemblocker.text.apply_no_clear";
                     }
                     else {
                         PresetsConfig.applyPreset(entry.name, true);
-                        toastTest = "Applied preset!";
+                        toastTest = "itemblocker.text.apply_clear";
                     }
-                    PresetsConfig.applyPreset(entry.name, !isShiftDown);
-                    this.addToast(Component.literal(toastTest), Component.literal("Applied: §6" + entry.name));
+                    this.addToast(Component.translatable(toastTest), Component.translatable("itemblocker.text.applied", entry.name));
                     this.playClickSound();
                     Loggers.PRESETS_LOGGER.info("Applied preset: {}", entry.name);
                 }
 
-                int exportX = this.width / 2 + 48;
-                if (click.x() >= exportX && click.x() <= exportX + 38 &&
-                        click.y() >= yOffset && click.y() <= yOffset + 20) {
+                if (inside(mx, my, l.exportX(), yOffset, l.exportW(), BTN_H)) {
                     exportPresetName = entry.name;
                     exportCode = PresetSharing.exportPreset(entry.name).exportCode();
                     showingExportPopup = true;
@@ -393,16 +472,12 @@ public class PresetsScreen extends GlobalScreen {
                     Loggers.PRESETS_LOGGER.info("Exporting preset: {}", entry.name);
                 }
 
-                int editX = this.width / 2 + 91;
-                if (click.x() >= editX && click.x() <= editX + 30 &&
-                        click.y() >= yOffset && click.y() <= yOffset + 20) {
+                if (inside(mx, my, l.editX(), yOffset, l.editW(), BTN_H)) {
                     this.playClickSound();
                     this.minecraft.gui.setScreen(new EditPresetScreen(this, entry.name));
                 }
 
-                int deleteX = this.width / 2 + 126;
-                if (click.x() >= deleteX && click.x() <= deleteX + 28 &&
-                        click.y() >= yOffset && click.y() <= yOffset + 20) {
+                if (inside(mx, my, l.deleteX(), yOffset, l.deleteW(), BTN_H)) {
 
                     if (isShiftDown) {
                         Loggers.PRESETS_LOGGER.info("Deleted preset: {}", entry.name);
@@ -410,14 +485,13 @@ public class PresetsScreen extends GlobalScreen {
                     }
                     if (!isShiftDown) {
                         showingDeletePopup = true;
-                        deletePresetName = entry.name;
                         fullPresetName = entry.name;
                     }
                     this.refreshList();
                     this.playClickSound();
                 }
 
-                yOffset += 30;
+                yOffset += ROW_H;
             }
         }
 
@@ -426,11 +500,10 @@ public class PresetsScreen extends GlobalScreen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        int listY = 60;
         int listHeight = this.height - 100;
 
-        if (!showingExportPopup && !showingDeletePopup && mouseY >= listY && mouseY <= listY + listHeight) {
-            int itemsPerPage = (listHeight - 10) / 30;
+        if (!showingExportPopup && !showingDeletePopup && mouseY >= LIST_TOP && mouseY <= LIST_TOP + listHeight) {
+            int itemsPerPage = (listHeight - 10) / ROW_H;
             int maxScroll = Math.max(0, presetsList.size() - itemsPerPage);
             scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset - (int) verticalAmount));
         }
@@ -438,27 +511,23 @@ public class PresetsScreen extends GlobalScreen {
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-
     @Override
     public boolean keyPressed(@NonNull KeyEvent keyInput) {
-        String displayCode = exportCode;
-
         if (showingExportPopup && keyInput.isEscape()) {
             showingExportPopup = false;
         }
 
         if (showingDeletePopup && keyInput.isConfirmation()) {
-            PresetsConfig.deletePreset(deletePresetName);
+            PresetsConfig.deletePreset(fullPresetName);
             showingDeletePopup = false;
+            this.refreshList();
         }
         if (showingExportPopup && keyInput.isCopy()) {
-            this.addToast(Component.literal("Copied to clipboard!"), Component.literal("Copied export code to clipboard!"));
-            minecraft.keyboardHandler.setClipboard(displayCode);
+            this.addToast(Component.translatable("itemblocker.text.copied"), Component.translatable("itemblocker.text.copied_code"));
+            minecraft.keyboardHandler.setClipboard(exportCode);
         }
         return super.keyPressed(keyInput);
     }
-    
-
 
     private record PresetEntry(String name) {
     }
