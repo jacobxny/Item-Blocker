@@ -1,118 +1,84 @@
 package com.itemblocker.api.dropping;
 
-import com.itemblocker.api.enums.PickupMode;
-import com.itemblocker.api.item.ItemUtil;
 import com.itemblocker.api.keymapping.KeyOptions;
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.*;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.server.IntegratedServer;
-import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
-import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.util.Prediction;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
-import java.util.logging.Logger;
-
 public class DroppingUtils {
-
 
     private static final Minecraft client = Minecraft.getInstance();
 
-    public static CreativeModeTab creativeTab;
 
+    public static final int PLAYER_INVENTORY_SLOTS = 41;
+
+
+    public static boolean isPlayerInventorySlot(Slot slot) {
+        LocalPlayer player = client.player;
+        return player != null
+                && slot.container == player.getInventory()
+                && slot.getContainerSlot() < PLAYER_INVENTORY_SLOTS;
+    }
 
     /**
-     * Whenever this method is called, it iterates through the client's inventory looking for a blocked item, and drops it through the interaction manager.
-     * <p></p>
+     * Whenever this method is called, it goes through the slots of the currently open menu, finds the ones that
+     * belong to the player's inventory and holds a blocked item, and drops that item through the interaction
+     * manager (pick the stack up, then click outside the window to throw it).
      * <p>
-     * If dropping through the interaction manager fails, the item is dropped manually through {@link net.minecraft.client.player.LocalPlayer#drop(ItemStack, boolean, Prediction)} and a drop packet is sent to the server.
-     * <p></p>
-     * However, this way is very buggy and sometimes doesn't work as expected.
+     * Each slot is addressed by its own {@code slot.index} in the open menu, so the correct item is dropped on
+     * every screen without any per-screen offsets. Blocked items sitting in a container (chest, hopper, ...) are
+     * left alone.
+     * <p>
+     * Does nothing while the creative inventory screen is open, since it handles slots differently.
      */
     public static void iterateInventory() {
         KeyOptions options = ItemBlockerClient.getOptions();
 
         LocalPlayer player = client.player;
-        if (player == null) {
+        if (player == null || client.gameMode == null) {
             return;
         }
 
-        if (options.isTemporaryAllowPressed()) {
+        if (options.isTemporaryAllowPressed() || !options.isToggled()) {
             return;
         }
 
-        if (!options.isToggled()) {
+        if (client.gui.screen() instanceof CreativeModeInventoryScreen) {
             return;
         }
 
-        for (int i = 0; i < player.containerMenu.slots.size(); i++) {
-            ItemStack stack = player.containerMenu.getSlot(i).getItem();
-            int defaultRange = i < 9 ? i + 36 : i;
-            if (!stack.isEmpty() && (BlockedItemsConfig.isBlocked(stack))) {
-                Loggers.CLIENT_LOGGER.info("Dropping blocked item from slot {}: {}", i, stack.getItem());
-                if (client.gameMode != null) {
-                    try {
-                        if (client.gui.screen() instanceof CreativeModeInventoryScreen) {
-                            return;
-                        }
-                        int amount = getAmountToChange(client.gui.screen());
+        for (Slot slot : player.containerMenu.slots) {
+            if (!isPlayerInventorySlot(slot)) {
+                continue;
+            }
 
-                        client.gameMode.handleContainerInput(
-                                player.containerMenu.containerId,
-                                defaultRange + amount,
-                                0,
-                                ContainerInput.PICKUP,
-                                player
-                        );
+            ItemStack stack = slot.getItem();
+            if (stack.isEmpty() || !BlockedItemsConfig.isBlocked(stack)) {
+                continue;
+            }
 
-                        client.gameMode.handleContainerInput(
-                                player.containerMenu.containerId,
-                                -999,
-                                0,
-                                ContainerInput.PICKUP,
-                                player
-                        );
-
-
-
-
-                    } catch (Exception e) {
-                        Loggers.CLIENT_LOGGER.error("Failed to drop item via interaction manager", e);
-                        player.connection.send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.DROP_ITEM, player.blockPosition(), player.getDirection()));
-                        player.drop(stack, false, Prediction.PREDICTED);
-                        break;
-                    }
-                }
+            Loggers.CLIENT_LOGGER.info("Dropping blocked item from slot {}: {}", slot.index, stack.getItem());
+            try {
+                dropSlot(player, slot);
+            } catch (Exception e) {
+                Loggers.CLIENT_LOGGER.error("Failed to drop item via interaction manager", e);
+                return;
             }
         }
     }
 
+    private static void dropSlot(LocalPlayer player, Slot slot) {
+        int containerId = player.containerMenu.containerId;
 
-    private static int getAmountToChange(Screen screen) {
-        int amount = 0;
-        if (screen instanceof ContainerScreen) {
-            amount = 18;
-        }
-        if (screen instanceof CraftingScreen) {
-            amount = 1;
-        }
-        if (screen instanceof AnvilScreen) {
-            amount = -6;
-        }
-        if (screen instanceof HopperScreen) {
-            amount = -4;
-        }
-        return amount;
+        client.gameMode.handleContainerInput(containerId, slot.index, 0, ContainerInput.PICKUP, player);
+        client.gameMode.handleContainerInput(containerId, -999, 0, ContainerInput.PICKUP, player);
     }
 
 }

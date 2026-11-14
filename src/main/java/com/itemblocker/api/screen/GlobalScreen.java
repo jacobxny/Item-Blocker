@@ -2,7 +2,7 @@ package com.itemblocker.api.screen;
 
 
 import com.itemblocker.api.logging.Loggers;
-import com.itemblocker.api.screen.misc.*;
+import com.itemblocker.api.screen.util.*;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.mixin.screen.CursorTypeInvoker;
 import com.mojang.blaze3d.platform.cursor.CursorType;
@@ -72,7 +72,7 @@ public abstract class GlobalScreen extends Screen {
     }
 
 
-    protected @NotNull AbstractFadeManager getFadeManager() {
+    private @NotNull AbstractFadeManager getFadeManager() {
         return new AbstractFadeManager() {
             @Override
             public @NonNull Fade getDefaultFade() {

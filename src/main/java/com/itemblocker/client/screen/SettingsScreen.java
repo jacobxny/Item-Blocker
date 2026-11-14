@@ -1,7 +1,7 @@
 package com.itemblocker.client.screen;
 
 import com.itemblocker.api.enums.AlignmentMode;
-import com.itemblocker.api.screen.misc.Colors;
+import com.itemblocker.api.screen.util.Colors;
 import com.itemblocker.api.enums.ItemIDMode;
 import com.itemblocker.api.enums.PickupMode;
 import com.itemblocker.api.screen.GlobalScreen;
@@ -105,17 +105,21 @@ public class SettingsScreen extends GlobalScreen {
         if (pageNumber != 1) {
             backButton.extractRenderState(graphics, mouseX, mouseY, delta);
             this.addWidget(backButton);
+            backButton.active = true;
         }
         if (pageNumber == 1) {
             this.removeWidget(backButton);
+            backButton.active = false;
         }
 
         if (pageNumber != maxPages) {
             forwardButton.extractRenderState(graphics, mouseX, mouseY, delta);
             this.addWidget(forwardButton);
+            forwardButton.active = true;
         }
         if (pageNumber == maxPages) {
             this.removeWidget(forwardButton);
+            forwardButton.active = false;
         }
 
         if (pageNumber == 1) {
@@ -209,11 +213,15 @@ public class SettingsScreen extends GlobalScreen {
 
     @Override
     public void onClose() {
+        Screen screen = new ModsScreen(null);
+        if (!ItemBlockerClient.isModMenuInstalled) {
+            screen = null;
+        }
         if (BlockedItemsConfig.getAlignmentMode() == AlignmentMode.LEFT_ALIGNED) {
-            parent = new LeftAlignedScreen(new ModsScreen(null));
+            parent = new LeftAlignedScreen(screen);
         }
         else {
-            parent = new BlockedItemsScreen(new ModsScreen(null));
+            parent = new BlockedItemsScreen(screen);
         }
         this.minecraft.gui.setScreen(parent);
     }

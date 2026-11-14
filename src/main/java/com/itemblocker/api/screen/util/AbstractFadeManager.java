@@ -1,4 +1,4 @@
-package com.itemblocker.api.screen.misc;
+package com.itemblocker.api.screen.util;
 
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;

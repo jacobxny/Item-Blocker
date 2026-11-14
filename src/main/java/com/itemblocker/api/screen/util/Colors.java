@@ -1,7 +1,4 @@
-package com.itemblocker.api.screen.misc;
-
-
-import org.jetbrains.annotations.Contract;
+package com.itemblocker.api.screen.util;
 
 @SuppressWarnings("unused")
 public class Colors {
@@ -21,7 +18,6 @@ public class Colors {
         this.color = color;
         this.hoveredColor = hoveredColor;
     }
-
 
     public Colors(int color) {
         this(color, color);

@@ -1,4 +1,4 @@
-package com.itemblocker.api.screen.misc;
+package com.itemblocker.api.screen.util;
 
 
 public class Fade {

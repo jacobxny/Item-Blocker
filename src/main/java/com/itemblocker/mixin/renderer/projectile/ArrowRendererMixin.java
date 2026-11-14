@@ -1,7 +1,7 @@
 package com.itemblocker.mixin.renderer.projectile;
 
 
-import com.itemblocker.api.screen.misc.Colors;
+import com.itemblocker.api.screen.util.Colors;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import net.minecraft.client.renderer.entity.ArrowRenderer;

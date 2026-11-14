@@ -1,17 +1,15 @@
 package com.itemblocker.client.screen.presets.edit;
 
 import com.itemblocker.api.RegistryUtils;
-import com.itemblocker.api.screen.misc.Fade;
+import com.itemblocker.api.screen.util.Fade;
 import com.itemblocker.api.item.ItemUtil;
 import com.itemblocker.api.screen.AbstractItemWidget;
 import com.itemblocker.client.ItemBlockerClient;
-import com.itemblocker.client.config.BlockedItemsConfig;
 import com.itemblocker.client.config.PresetsConfig;
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.api.records.ItemEntry;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.registries.BuiltInRegistries;

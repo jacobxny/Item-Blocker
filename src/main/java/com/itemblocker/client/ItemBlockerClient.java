@@ -67,7 +67,7 @@ public class ItemBlockerClient implements ClientModInitializer {
         long total = end - start;
 
 
-        Loggers.CLIENT_LOGGER.info("Client initialized in {}ms", total);
+        Loggers.CLIENT_LOGGER.info("Item Blocker initialized in {}ms", total);
     }
 
     public static void tick(Minecraft minecraft) {
