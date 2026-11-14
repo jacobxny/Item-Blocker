@@ -88,7 +88,7 @@ public class KeyOptions {
 
         if (BlockedItemsConfig.devFlagsEnabled()) {
             loadConfigKey = new KeyMapping(
-                    "Load Configs",
+                    "key.itemblocker.loadconfig",
                     InputConstants.Type.KEYBOARD,
                     InputConstants.KEY_F7,
                     category

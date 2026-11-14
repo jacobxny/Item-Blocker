@@ -2,7 +2,7 @@ package com.itemblocker.client.screen.presets;
 
 import com.itemblocker.api.PresetSharing;
 import com.itemblocker.api.enums.AlignmentMode;
-import com.itemblocker.api.screen.misc.Fade;
+import com.itemblocker.api.screen.util.Fade;
 import com.itemblocker.api.screen.GlobalScreen;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import com.itemblocker.client.config.PresetsConfig;
@@ -15,7 +15,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import org.jspecify.annotations.NonNull;
@@ -74,7 +73,6 @@ public class ImportPresetScreen extends GlobalScreen {
 
         PresetSharing.ImportedPreset imported = PresetSharing.importPreset(code);
         if (imported == null) {
-            Loggers.PRESETS_LOGGER.info("import test");
             successTime = -1;
             emptyTime = -1;
             invalidTime = Util.getMillis();

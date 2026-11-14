@@ -1,18 +1,13 @@
 package com.itemblocker.mixin.renderer;
 
-import com.itemblocker.api.keymapping.KeyHandler;
-import com.itemblocker.api.screen.misc.Colors;
+import com.itemblocker.api.screen.util.Colors;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import net.minecraft.client.renderer.entity.ItemEntityRenderer;
 import net.minecraft.client.renderer.entity.state.ItemEntityRenderState;
-import net.minecraft.gizmos.ArrowGizmo;
-import net.minecraft.gizmos.CuboidGizmo;
 import net.minecraft.gizmos.GizmoStyle;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
