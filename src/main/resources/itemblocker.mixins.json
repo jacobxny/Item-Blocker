@@ -24,7 +24,6 @@
     "renderer.projectile.ThrownTridentRendererMixin",
     "screen.AbstractContainerMenuMixin",
     "screen.AbstractContainerScreenMixin",
-    "screen.CreativeModeInventoryScreenMixin",
     "screen.GuiMixin",
     "screen.HudMixin"
   ],
