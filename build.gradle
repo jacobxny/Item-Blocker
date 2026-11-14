@@ -102,6 +102,8 @@ java {
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
+def displayVersion = version.toString()
+
 publishMods {
 	changelog = ""
 	type = STABLE
@@ -111,7 +113,7 @@ publishMods {
 	modrinth {
 		projectId = "JudjzCsX"
 		accessToken = providers.environmentVariable("MODRINTH_TOKEN")
-		displayName = version
+		displayName = "itemblocker-${displayVersion}"
 		minecraftVersions.add(minecraft_version)
 		additionalFile(sourcesJar.archiveFile) {
 			type = SOURCES_JAR
@@ -123,7 +125,7 @@ publishMods {
 	curseforge {
 		accessToken =  providers.environmentVariable("CURSEFORGE_TOKEN")
 		projectId = "1539849"
-		displayName = version
+		displayName = "itemblocker+${displayVersion}"
 		minecraftVersions.add(minecraft_version)
 		additionalFile(sourcesJar.archiveFile) {
 			name = sourcesJar.archiveFileName
