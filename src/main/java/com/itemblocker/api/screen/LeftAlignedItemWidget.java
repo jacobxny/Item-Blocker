@@ -3,7 +3,7 @@ package com.itemblocker.api.screen;
 import com.itemblocker.api.RegistryUtils;
 import com.itemblocker.api.item.ItemUtil;
 import com.itemblocker.api.records.ItemEntry;
-import com.itemblocker.api.screen.misc.Colors;
+import com.itemblocker.api.screen.util.Colors;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import com.mojang.blaze3d.platform.InputConstants;

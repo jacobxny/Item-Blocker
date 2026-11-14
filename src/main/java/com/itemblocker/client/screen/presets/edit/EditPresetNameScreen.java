@@ -1,7 +1,7 @@
 package com.itemblocker.client.screen.presets.edit;
 
 import com.itemblocker.api.enums.AlignmentMode;
-import com.itemblocker.api.screen.misc.Fade;
+import com.itemblocker.api.screen.util.Fade;
 import com.itemblocker.api.screen.GlobalScreen;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import com.itemblocker.client.config.PresetsConfig;
