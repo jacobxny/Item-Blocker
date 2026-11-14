@@ -5,7 +5,7 @@ import com.itemblocker.api.enums.ItemIDMode;
 import com.itemblocker.api.item.ItemUtil;
 import com.itemblocker.api.logging.Loggers;
 import com.itemblocker.api.records.ItemEntry;
-import com.itemblocker.api.screen.misc.Colors;
+import com.itemblocker.api.screen.util.Colors;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -29,6 +29,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.*;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix3x2fStack;
 import org.jspecify.annotations.NonNull;
@@ -717,7 +718,15 @@ public abstract class AbstractItemWidget extends GlobalScreen  {
         return super.keyPressed(input);
     }
 
-    protected native void checkItemId();
+    /**
+     * For any inheritors of this screen, this method must be overridden to implement adding items and checking their item ID
+     * <br><br>
+     * Without overriding this method, search functionality (including adding items through search)
+     * will still work if implemented, however manually inputting items will fail.
+     */
+    @ApiStatus.OverrideOnly
+    protected void checkItemId() {
+    };
 
 
     @Override
@@ -911,7 +920,6 @@ public abstract class AbstractItemWidget extends GlobalScreen  {
             sortList(allItems);
         }
         areItemsPopulated = true;
-        Loggers.CLIENT_LOGGER.info("Amount of items in list: {}", allItems.size());
     }
 
     private record ScrollThumbGeometry(int y, int height) {}
