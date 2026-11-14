@@ -1,9 +1,11 @@
 package com.itemblocker.client.screen;
 
 import com.itemblocker.api.screen.AbstractItemWidget;
-import com.itemblocker.api.screen.misc.Fade;
+import com.itemblocker.api.screen.util.Fade;
 import com.itemblocker.api.RegistryUtils;
 import com.itemblocker.api.item.ItemUtil;
+import com.itemblocker.api.screen.util.Rect;
+import com.itemblocker.api.screen.util.TutorialStep;
 import com.itemblocker.client.ItemBlockerClient;
 import com.itemblocker.client.config.BlockedItemsConfig;
 import com.itemblocker.client.screen.presets.PresetsScreen;
@@ -11,6 +13,7 @@ import com.itemblocker.api.records.ItemEntry;
 import com.itemblocker.api.logging.Loggers;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -24,22 +27,15 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntSupplier;
 
 
 public class BlockedItemsScreen extends AbstractItemWidget {
-    private int firstTicks = 0;
     private long invalidIDStartTime = -1;
     private Button tutorialButton;
     private boolean inTutorial = false;
     private long successTime = -1;
     private long alreadyTime = -1;
-    private long testTime = -1;
-    private long test1Time = -1;
-    private long test2Time = -1;
-    private long test3Time = -1;
-    private long test4Time = -1;
-    private long test5Time = -1;
-    private long test6Time = -1;
     private String itemId;
     private int clearX;
     private int optionsX;
@@ -47,7 +43,6 @@ public class BlockedItemsScreen extends AbstractItemWidget {
     private final int rowY = 90;
 
     private static final float BUTTON_HOVER_ANIM_SPEED = 14f;
-    private static final float PROMPT_DURATION = 5f;
     private static final float FADE_IN = 0.25f;
     private static final float FADE_OUT = 0.25f;
 
@@ -55,6 +50,15 @@ public class BlockedItemsScreen extends AbstractItemWidget {
     private float optionsHoverProgress = 0f;
     private float presetsHoverProgress = 0f;
     private long lastButtonFrameTimeNanos = -1;
+
+
+    private static final int TUTORIAL_BOX_PADDING = 3;
+    private static final int TUTORIAL_SCREEN_MARGIN = 4;
+
+    private List<TutorialStep> tutorialSteps = List.of();
+    private float[] tutorialStepStarts = new float[0];  
+    private float tutorialTotalSeconds = 0f;
+    private long tutorialStartTime = -1;
 
 
     public BlockedItemsScreen(Screen parent) {
@@ -112,7 +116,7 @@ public class BlockedItemsScreen extends AbstractItemWidget {
         }).bounds(this.doneButton.getX() - 50, this.height - 30, 30, 20).build();
         this.addRenderableWidget(tutorialButton);
 
-
+        this.buildTutorial();
 
         this.refreshList();
         if (!BlockedItemsConfig.hasDoneTutorial()) {
@@ -158,7 +162,6 @@ public class BlockedItemsScreen extends AbstractItemWidget {
             if (ItemBlockerClient.isUsingIDMode()) {
                 text = itemId;
             }
-
             else {
                 text = ItemUtil.getItemNameFromID(itemId, true, RegistryUtils.isRegistryLoaded);
             }
@@ -169,6 +172,9 @@ public class BlockedItemsScreen extends AbstractItemWidget {
 
         this.renderButtons(graphics, mouseX, mouseY);
         this.renderTutorial(graphics, mouseX, mouseY, delta);
+        if (inTutorial && (Util.getMillis() - tutorialStartTime) / 1000f >= tutorialTotalSeconds) {
+            this.finishTutorial();
+        }
     }
 
     private void renderButtons(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
@@ -198,123 +204,168 @@ public class BlockedItemsScreen extends AbstractItemWidget {
     }
 
 
-    private void renderTutorial(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        if (testTime >= 0) {
-            int col = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, PROMPT_DURATION, FADE_IN, FADE_OUT), testTime);
-            int col1 = fadeManager.fadeInOut(new Fade(0xFF000000, PROMPT_DURATION, FADE_IN, FADE_OUT), testTime);
-            int bgColor = fadeManager.fadeInOut(new Fade(0x88000000, 39f, FADE_IN, FADE_OUT), testTime);
-            int textColor = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, 39f, FADE_IN, FADE_OUT), testTime);
+    /**
+     * Used to create all the steps used in the player tutorial when first entering the screen or pressing the tutorial button.
+     * <br>
+     * To add a step:
+     * <br></br>
+     * 1. First, add a {@link TutorialStep.Builder} to the list using {@link TutorialStep#step(String)}
+     * <br></br>
+     * 2. To add a box and arrow to the step, you can use {@link TutorialStep.Builder#box(IntSupplier, IntSupplier, int)} and
+     * {@link TutorialStep.Builder#pointAt(IntSupplier, IntSupplier)} to point the arrow at a specific point. A box is required to create a tutorial step!
+     * <br></br>
+     * 3. To make it highlight a screen element, you can use {@link TutorialStep.Builder#reveal(TutorialStep.Reveal)} and include the element rendering method,
+     * most likely {@link AbstractWidget#extractRenderState(GuiGraphicsExtractor, int, int, float)} )} in a lambda.
+     * <br></br>
+     * 4. You can also add an optional outline around a specific widget by either using {@link Rect#of(AbstractWidget)}
+     * or by providing specific coordinates by using {@code new Rect(int, int, int, int)}
+     * <br></br>
+     * 5. Finally to build the tutorial step, you can use {@link TutorialStep.Builder#build()} to return a new {@link TutorialStep} instance,
+     * with the parameters mentioned above.
+     */
 
-            graphics.fill(0, 0, width, height, bgColor);
-            widgetGraphics.arrow(graphics, width / 2 - 200, height / 2 - 20, inputField.getX(), inputField.getY() + 20, 1, 5, col);
-            Component text = Component.translatable("itemblocker.tutorial.item_ids");
-            int textHeight = font.wordWrapHeight(text, 177);
-            int boxHeight = height / 2 - 20;
-            graphics.fill(width / 2 - 300, boxHeight, width / 2 - 120, boxHeight + textHeight + 10, col1);
-            graphics.outline(width / 2 - 300, boxHeight, 180, textHeight + 10, col);
-            graphics.textWithWordWrap(this.font, text, width / 2 - 297, height / 2 - 17, 177, col);
-            graphics.text(this.font, Component.translatable("itemblocker.tutorial.skip"), 4, 8, textColor);
-            if (test1Time < 0) {
-                inputField.extractRenderState(graphics, mouseX, mouseY, delta);
-            }
+    private void buildTutorial() {
+        tutorialSteps = List.of(
+                TutorialStep.step("itemblocker.tutorial.item_ids")
+                        .box(() -> width / 2 - 300, () -> height / 2 - 20, 180)
+                        .pointAt(() -> inputField.getX(), () -> inputField.getY() + 20)
+                        .reveal((g, mx, my, d) -> inputField.extractRenderState(g, mx, my, d))
+                        .build(),
 
+                TutorialStep.step("itemblocker.tutorial.submit_item")
+                        .box(() -> width / 2 + 100, () -> height / 2 - 10, 180)
+                        .pointAt(() -> addButton.getX() + addButton.getWidth(), () -> addButton.getY() + addButton.getHeight())
+                        .outline(() -> Rect.of(addButton))
+                        .reveal((g, mx, my, d) -> addButton.extractRenderState(g, mx, my, d))
+                        .build(),
+
+                TutorialStep.step("itemblocker.tutorial.clear_all")
+                        .box(() -> width / 2 - 180, () -> height / 2 + 40, 180)
+                        .pointAt(() -> clearX + 9, () -> rowY + 17)
+                        .reveal(animatedButtonReveal("bin.png", () -> clearX, 0.5f))
+                        .build(),
+
+                TutorialStep.step("itemblocker.tutorial.options")
+                        .box(() -> width / 2 - 50, () -> height / 2 + 40, 180)
+                        .pointAt(() -> optionsX + 9, () -> rowY + 17)
+                        .reveal(animatedButtonReveal("settings.png", () -> optionsX, 0.5f))
+                        .build(),
+
+                TutorialStep.step("itemblocker.tutorial.presets")
+                        .box(() -> width / 2 + 30, () -> height / 2 + 20, 200)
+                        .pointAt(() -> presetsX + 9, () -> rowY + 17)
+                        .reveal(animatedButtonReveal("presets.png", () -> presetsX, 0.3f))
+                        .seconds(6f)
+                        .build(),
+
+                TutorialStep.step("itemblocker.tutorial.blocked_items")
+                        .box(() -> width / 2 - 310, () -> getListY() + getListHeight() / 2 - 30, 176)
+                        .pointAt(this::getListX, () -> getListY() + getListHeight() / 2)
+                        .outline(() -> new Rect(getListX(), getListY(), getListWidth(), getListHeight()))
+                        .reveal((g, mx, my, d) -> renderWidget(g, mx, my))
+                        .seconds(7.5f)
+                        .build(),
+
+                TutorialStep.step("itemblocker.tutorial.tutorial")
+                        .box(() -> width / 2 - 90, () -> height / 2 - 35, 150)
+                        .pointAt(() -> tutorialButton.getX() + tutorialButton.getWidth(), () -> tutorialButton.getY())
+                        .outline(() -> Rect.of(tutorialButton))
+                        .build()
+        );
+
+        tutorialStepStarts = new float[tutorialSteps.size()];
+        float t = 0f;
+        for (int i = 0; i < tutorialSteps.size(); i++) {
+            tutorialStepStarts[i] = t;
+            t += tutorialSteps.get(i).seconds();
         }
-        if (test1Time >= 0) {
-            int col2 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, PROMPT_DURATION, FADE_IN, FADE_OUT), test1Time);
-            int col3 = fadeManager.fadeInOut(new Fade(0xFF000000, PROMPT_DURATION, FADE_IN, FADE_OUT), test1Time);
-            widgetGraphics.arrow(graphics, width / 2 + 200, height / 2 - 10, this.addButton.getX() + this.addButton.getWidth(), this.addButton.getY() + this.addButton.getHeight(), 1, 5, col2);
-            if (test2Time < 0) {
-                addButton.extractRenderState(graphics, mouseX, mouseY, delta);
-            }
-            Component text = Component.translatable("itemblocker.tutorial.submit_item");
-            int textHeight = font.wordWrapHeight(text, 179);
-            int boxHeight = height / 2 - 10;
-            graphics.outline(addButton.getX(), addButton.getY(), addButton.getWidth(), addButton.getHeight(), col2);
-            graphics.fill(width / 2 + 100, boxHeight, width / 2 + 280, boxHeight + textHeight + 10, col3);
-            graphics.outline(width / 2 + 100, boxHeight, 180, textHeight + 10, col2);
-            graphics.textWithWordWrap(this.font, text, width / 2 + 103, height / 2 - 7, 179, col2);
-        }
-        if (test2Time >= 0) {
-            int col4 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, PROMPT_DURATION, FADE_IN, FADE_OUT), test2Time);
-            int col5 = fadeManager.fadeInOut(new Fade(0xFF000000, PROMPT_DURATION, FADE_IN, FADE_OUT), test2Time);
-            widgetGraphics.arrow(graphics, width / 2 - 120, height / 2 + 40, clearX + 9, rowY + 17, 1, 5, col4);
-            Component text = Component.translatable("itemblocker.tutorial.clear_all");
-            int textHeight = font.wordWrapHeight(text, 179);
-            int boxHeight = height / 2 + 40;
-            graphics.fill(width / 2 - 180, boxHeight, width / 2, boxHeight + textHeight + 10, col5);
-            graphics.outline(width / 2 - 180, boxHeight, 180, textHeight + 10, col4);
-            graphics.textWithWordWrap(this.font, text, width / 2 - 177, height / 2 + 43, 179, col4);
-            if (test3Time < 0) {
-                widgetGraphics.animatedButton(graphics, Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/bin.png"), clearX, rowY, 0.5f, false, true, Component.empty());
-            }
-        }
-        if (test3Time >= 0) {
-            int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, PROMPT_DURATION, FADE_IN, FADE_OUT), test3Time);
-            int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, PROMPT_DURATION, FADE_IN, FADE_OUT), test3Time);
-            widgetGraphics.arrow(graphics, width / 2, height / 2 + 40, optionsX + 9, rowY + 17, 1, 5, col6);
-            if (test4Time < 0) {
-                widgetGraphics.animatedButton(graphics, Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/settings.png"), optionsX, rowY, 0.5f, false, true, Component.empty());
-            }
-            Component text = Component.translatable("itemblocker.tutorial.options");
-            int textHeight = font.wordWrapHeight(text, 180);
-            int boxHeight = height / 2 + 40;
-            graphics.fill(width / 2 - 50, boxHeight, width / 2 + 130, boxHeight + textHeight + 10, col7);
-            graphics.outline(width / 2 - 50, boxHeight, 180, textHeight + 10, col6);
-            graphics.textWithWordWrap(this.font, text, width / 2 - 47, height / 2 + 43, 180, col6);
-        }
-        if (test4Time >= 0) {
-            int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, 6f, FADE_IN, FADE_OUT), test4Time);
-            int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, 6f, FADE_IN, FADE_OUT), test4Time);
-            widgetGraphics.arrow(graphics, width / 2 + 80, height / 2 + 20, presetsX + 9, rowY + 17, 1, 5, col6);
-            if (test5Time < 0) {
-                widgetGraphics.animatedButton(graphics, Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/presets.png"), presetsX, rowY, 0.3f, false, true, Component.empty());
-            }
-            Component text = Component.translatable("itemblocker.tutorial.presets");
-            int textHeight = font.wordWrapHeight(text, 190);
-            int boxHeight = height / 2 + 20;
-            graphics.fill(width / 2 + 30, boxHeight, width / 2 + 230, boxHeight + textHeight + 10, col7);
-            graphics.outline(width / 2 + 30, boxHeight, 200, textHeight + 10, col6);
-            graphics.textWithWordWrap(this.font, text, width / 2 + 33, height / 2 + 23, 190, col6);
-        }
-        if (test5Time >= 0) {
-            int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, 7.5f, FADE_IN, FADE_OUT), test5Time);
-            int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, 7.5f, FADE_IN, FADE_OUT), test5Time);
-            widgetGraphics.arrow(graphics, width / 2 - 134, this.getListY() + (this.getListHeight() / 2), this.getListX(), this.getListY() + (this.getListHeight() / 2), 1, 5, col6);
-            Component text = Component.translatable("itemblocker.tutorial.blocked_items");
-            int textHeight = font.wordWrapHeight(text, 170);
-            int boxHeight = this.getListY() + (this.getListHeight() / 2) - 30;
-            graphics.fill(width / 2 - 310, boxHeight, width / 2 - 134, boxHeight + textHeight + 10, col7);
-            graphics.outline(width / 2 - 310, boxHeight, 176, textHeight + 10, col6);
-            graphics.textWithWordWrap(this.font, text, width / 2 - 307, this.getListY() + (this.getListHeight() / 2) - 27, 170, col6);
-            if (test6Time < 0) {
-                this.renderWidget(graphics, mouseX, mouseY);
-            }
-            graphics.outline(this.getListX(), this.getListY(), this.getListWidth(), this.getListHeight(), col6);
-        }
-        if (test6Time >= 0) {
-            int col6 = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, 5f, FADE_IN, FADE_OUT), test6Time);
-            int col7 = fadeManager.fadeInOut(new Fade(0xFF000000, 5f, FADE_IN, FADE_OUT), test6Time);
-            widgetGraphics.arrow(graphics, width / 2 - 30, height / 2 + 5, this.tutorialButton.getX() + this.tutorialButton.getWidth(), this.tutorialButton.getY(), 1, 5, col6);
-            Component text = Component.translatable("itemblocker.tutorial.tutorial");
-            int textHeight = font.wordWrapHeight(text, 150);
-            int boxHeight = height / 2 + 5;
-            /*
-            For some reason, this part acts very weird, the coordinates don't act like
-            the other ones from previous tutorial steps, and so it's very confusing,
-            if anyone looking at this knows why let me know.
-            */
-            graphics.fill(width / 2 - 90, boxHeight, width / 2 + 60, boxHeight - textHeight - 10, col7);
-            graphics.outline(width / 2 - 90, boxHeight - 40, 150, textHeight + 10, col6);
-            graphics.textWithWordWrap(this.font, text, width / 2 - 87, height / 2 - 32, 150, col6);
-            graphics.outline(this.tutorialButton.getX(), this.tutorialButton.getY(), this.tutorialButton.getWidth(), this.tutorialButton.getHeight(), col6);
-        }
+        tutorialTotalSeconds = t;
     }
+
+
+    private TutorialStep.Reveal animatedButtonReveal(String texture, IntSupplier x, float hoverProgress) {
+        Identifier id = Identifier.fromNamespaceAndPath(ItemBlockerClient.MOD_ID, "textures/gui/" + texture);
+        return (g, _, _, _) -> widgetGraphics.animatedButton(g, id, x.getAsInt(), rowY, hoverProgress, false, true, Component.empty());
+    }
+
+    private void renderTutorial(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        if (!inTutorial || tutorialSteps.isEmpty()) {
+            return;
+        }
+
+        float elapsed = (Util.getMillis() - tutorialStartTime) / 1000f;
+        
+        int bgColor = fadeManager.fadeInOut(new Fade(0x88000000, tutorialTotalSeconds, FADE_IN, FADE_OUT), tutorialStartTime);
+        int skipColor = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, tutorialTotalSeconds, FADE_IN, FADE_OUT), tutorialStartTime);
+        graphics.fill(0, 0, width, height, bgColor);
+        graphics.text(this.font, Component.translatable("itemblocker.tutorial.skip"), 4, 8, skipColor);
+        
+        int current = -1;
+        for (int i = 0; i < tutorialSteps.size(); i++) {
+            if (elapsed >= tutorialStepStarts[i]) {
+                current = i;
+            }
+        }
+        if (current < 0 || elapsed >= tutorialTotalSeconds) {
+            return;
+        }
+
+        TutorialStep step = tutorialSteps.get(current);
+        long stepStart = tutorialStartTime + (long) (tutorialStepStarts[current] * 1000f);
+        int white = fadeManager.fadeInOut(new Fade(0xFFFFFFFF, step.seconds(), FADE_IN, FADE_OUT), stepStart);
+        int black = fadeManager.fadeInOut(new Fade(0xFF000000, step.seconds(), FADE_IN, FADE_OUT), stepStart);
+
+        if (step.reveal() != null) {
+            step.reveal().draw(graphics, mouseX, mouseY, delta);
+        }
+
+        if (step.outline() != null) {
+            Rect r = step.outline().get();
+            graphics.outline(r.x(), r.y(), r.w(), r.h(), white);
+        }
+        
+        Component text = Component.translatable(step.hint());
+        int boxW = step.boxW();
+        int wrapW = boxW - TUTORIAL_BOX_PADDING * 2;
+        int boxH = this.font.wordWrapHeight(text, wrapW) + TUTORIAL_BOX_PADDING * 2 + 4;
+        int boxX = Math.clamp(step.boxX().getAsInt(), TUTORIAL_SCREEN_MARGIN, width - boxW - TUTORIAL_SCREEN_MARGIN);
+        int boxY = Math.clamp(step.boxY().getAsInt(), TUTORIAL_SCREEN_MARGIN, height - boxH - TUTORIAL_SCREEN_MARGIN);
+        
+        if (step.targetX() != null && step.targetY() != null) {
+            int tx = step.targetX().getAsInt();
+            int ty = step.targetY().getAsInt();
+            int ax = Math.clamp(tx, boxX, boxX + boxW);
+            int ay = Math.clamp(ty, boxY, boxY + boxH);
+            if (ax != tx || ay != ty) {
+                widgetGraphics.arrow(graphics, ax, ay, tx, ty, 1, 5, white);
+            }
+        }
+
+        graphics.fill(boxX, boxY, boxX + boxW, boxY + boxH, black);
+        graphics.outline(boxX, boxY, boxW, boxH, white);
+        graphics.textWithWordWrap(this.font, text, boxX + TUTORIAL_BOX_PADDING, boxY + TUTORIAL_BOX_PADDING, wrapW, white);
+    }
+
+    private void startTutorial() {
+        inTutorial = true;
+        this.tutorialButton.active = false;
+        tutorialStartTime = Util.getMillis();
+    }
+
+    private void finishTutorial() {
+        inTutorial = false;
+        tutorialStartTime = -1;
+        this.tutorialButton.active = true;
+        this.tutorialButton.setFocused(false);
+        BlockedItemsConfig.finishTutorial();
+    }
+
 
     @Override
     public boolean mouseClicked(@NonNull MouseButtonEvent click, boolean doubleClick) {
         if (inTutorial) {
             if (click.x() >= this.tutorialButton.getX() && click.x() <= this.tutorialButton.getX() + 30 &&
-                    click.y() >= this.tutorialButton.getY() && click.y() <= this.tutorialButton.getY() + 30){
+                    click.y() >= this.tutorialButton.getY() && click.y() <= this.tutorialButton.getY() + 20){
                 return super.mouseClicked(click, doubleClick);
             }
             else {
@@ -459,55 +510,5 @@ public class BlockedItemsScreen extends AbstractItemWidget {
                 }
             }
         }
-    }
-
-    @Override
-    public void tick() {
-        super.tick();
-
-        if (testTime >= 0) {
-            ++firstTicks;
-            if (firstTicks == 108) {
-                test1Time = Util.getMillis();
-            }
-            if (firstTicks == 208) {
-                test2Time = Util.getMillis();
-            }
-            if (firstTicks == 308) {
-                test3Time = Util.getMillis();
-            }
-            if (firstTicks == 408) {
-                test4Time = Util.getMillis();
-            }
-            if (firstTicks == 528) {
-                test5Time = Util.getMillis();
-            }
-            if (firstTicks == 677) {
-                test6Time = Util.getMillis();
-            }
-            if (firstTicks == 777) {
-                this.finishTutorial();
-            }
-        }
-    }
-
-    private void startTutorial() {
-        inTutorial = true;
-        this.tutorialButton.active = false;
-        testTime = Util.getMillis();
-    }
-
-    private void finishTutorial() {
-        inTutorial = false;
-        testTime = -1;
-        test1Time = -1;
-        test2Time = -1;
-        test3Time = -1;
-        test4Time = -1;
-        test5Time = -1;
-        test6Time = -1;
-        firstTicks = 0;
-        this.tutorialButton.active = true;
-        BlockedItemsConfig.finishTutorial();
     }
 }
