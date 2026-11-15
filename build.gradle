@@ -125,7 +125,7 @@ publishMods {
 	curseforge {
 		accessToken =  providers.environmentVariable("CURSEFORGE_TOKEN")
 		projectId = "1539849"
-		displayName = "itemblocker+${displayVersion}"
+		displayName = "itemblocker-${displayVersion}"
 		minecraftVersions.add(minecraft_version)
 		additionalFile(sourcesJar.archiveFile) {
 			name = sourcesJar.archiveFileName
