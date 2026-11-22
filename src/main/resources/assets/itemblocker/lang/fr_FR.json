@@ -16,7 +16,7 @@
   "itemblocker.text.item_id": "ID de l'item",
   "itemblocker.text.no_items": "Aucun item bloqué pour le moment !",
   "itemblocker.text.config": "Configuration des items bloqués :",
-  "itemblocker.text.options_title": "Item Blocker - Options:",
+  "itemblocker.text.options_title": "Bloqueur d'items - Options :",
   "itemblocker.text.pickup_mode": "Mode de ramassage",
   "itemblocker.text.items_handled": "Choose how blocked items are handled:",
   "itemblocker.text.client_only": "Mode: Client-Only (Recommended)",
